@@ -62,7 +62,7 @@ export function NearbyPanel({ rates }: { rates: RatesResponse | null }) {
           />
         </label>
         <button type="submit" className="press h-12 rounded-full bg-primary px-5 font-semibold text-on-primary" disabled={searching}>
-          {searching ? "Buscando\u2026" : "Fijar punto"}
+          {searching ? "Buscando…" : "Fijar punto"}
         </button>
         <button
           type="button"
@@ -92,7 +92,7 @@ export function NearbyPanel({ rates }: { rates: RatesResponse | null }) {
           }}
         >
           <LocateFixed className="size-4" aria-hidden="true" />
-          {locating ? "Ubicando\u2026" : "Mi ubicación"}
+          {locating ? "Ubicando…" : "Mi ubicación"}
         </button>
       </form>
       {hits.length > 1 ? (
@@ -166,7 +166,7 @@ export function AirportPanel({ rates }: { rates: RatesResponse | null }) {
               <Plane className="size-5 shrink-0 text-primary" aria-hidden="true" />
               <span>
                 <span className="block font-semibold">
-                  {item.iata} \u00b7 {item.name}
+                  {item.iata} · {item.name}
                 </span>
                 <span className="block text-sm text-muted">{item.city}</span>
               </span>
@@ -244,7 +244,7 @@ function PlaceResults({
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted">
-          Punto: <span className="font-semibold text-ink">{origin.label}</span> \u00b7 m\u00e1ximo 5 km
+          Punto: <span className="font-semibold text-ink">{origin.label}</span> · máximo 5 km
         </p>
         {airport ? (
           <button
@@ -289,7 +289,7 @@ function PlaceResults({
         onSelect={setSelected}
         radiusM={RADIUS_M}
       />
-      {loading ? <p className="text-sm text-muted">Buscando en OpenStreetMap\u2026</p> : null}
+      {loading ? <p className="text-sm text-muted">Buscando en OpenStreetMap…</p> : null}
       {error ? <p className="text-sm text-accent">{error}</p> : null}
       {!loading && !error && places.length === 0 ? (
         <p className="rounded-card border border-dashed border-line bg-surface px-4 py-6 text-sm text-pretty text-muted">
@@ -358,26 +358,26 @@ function PlaceCard({
           </span>
           <span className="mt-1 block text-sm text-muted">
             {formatDistance(place.distanceM)}
-            {place.address ? ` \u00b7 ${place.address}` : ""}
+            {place.address ? ` · ${place.address}` : ""}
           </span>
           {place.hours ? <span className="mt-1 block text-sm text-muted">{place.hours}</span> : null}
         </span>
       </button>
       <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
         <p className="rounded-2xl bg-paper px-3 py-2">
-          Mercado USD <span className="font-semibold tabular-nums">{usdMid ? formatMxn(usdMid, 2) : "\u2014"}</span>
+          Mercado USD <span className="font-semibold tabular-nums">{usdMid ? formatMxn(usdMid, 2) : "—"}</span>
         </p>
         <p className="rounded-2xl bg-paper px-3 py-2">
           Azteca compra/venta{" "}
           <span className="font-semibold tabular-nums">
-            {azteca ? `${formatMxn(azteca.compra)} / ${formatMxn(azteca.venta)}` : "sin publicaci\u00f3n"}
+            {azteca ? `${formatMxn(azteca.compra)} / ${formatMxn(azteca.venta)}` : "sin publicación"}
           </span>
         </p>
       </div>
       {place.kind === "casa" ? (
         <div className="mt-3">
           <p className="text-sm text-pretty text-muted">
-            Esta casa no publica su tablero en una API abierta. Anota lo que veas en el local y comp\u00e1ralo con Banco Azteca.
+            Esta casa no publica su tablero en una API abierta. Anota lo que veas en el local y compáralo con Banco Azteca.
           </p>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <label className="text-xs text-muted">
@@ -390,20 +390,20 @@ function PlaceCard({
             </label>
           </div>
           {azteca && Number.isFinite(buy) && buy > 0 ? (
-            <p className="mt-2 text-sm">{buy >= azteca.compra ? "Te pagan igual o mejor que Azteca por tus d\u00f3lares." : "Azteca te pagar\u00eda m\u00e1s por tus d\u00f3lares."}</p>
+            <p className="mt-2 text-sm">{buy >= azteca.compra ? "Te pagan igual o mejor que Azteca por tus dólares." : "Azteca te pagaría más por tus dólares."}</p>
           ) : null}
           {azteca && Number.isFinite(sell) && sell > 0 ? (
-            <p className="text-sm">{sell <= azteca.venta ? "Este local te vende el d\u00f3lar igual o m\u00e1s barato que Azteca." : "Azteca vende el d\u00f3lar m\u00e1s barato que este tablero."}</p>
+            <p className="text-sm">{sell <= azteca.venta ? "Este local te vende el dólar igual o más barato que Azteca." : "Azteca vende el dólar más barato que este tablero."}</p>
           ) : null}
         </div>
       ) : (
         <p className="mt-3 text-sm text-pretty text-muted">
-          Precio de referencia nacional de ventanilla. Conf\u00edrmalo en sucursal antes de operar.
+          Precio de referencia nacional de ventanilla. Confírmalo en sucursal antes de operar.
         </p>
       )}
       <div className="mt-3 flex flex-wrap gap-2">
         <a href={maps} target="_blank" rel="noreferrer" className="press inline-flex h-11 items-center rounded-full bg-ink px-4 text-sm font-semibold text-on-primary">
-          C\u00f3mo llegar
+          Cómo llegar
         </a>
         {place.phone ? (
           <a href={`tel:${place.phone}`} className="press inline-flex h-11 items-center rounded-full border border-line px-4 text-sm">
