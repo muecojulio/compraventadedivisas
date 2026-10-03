@@ -1,6 +1,5 @@
 {
-  "installCommand": "npm install --omit=dev --no-audit --no-fund",
-  "buildCommand": "npm run build:deploy",
-  "framework": "vite",
-  "outputDirectory": "dist"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "npm ci --omit=dev --no-audit --no-fund",
+  "buildCommand": "npm run build:deploy"
 }
