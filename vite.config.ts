@@ -12,10 +12,18 @@ import { grokPwaPlugin } from "./scripts/grok-pwa-plugin.mjs";
 import { appEnvPlugin } from "./scripts/app-env-plugin.mjs";
 import { isMigrationFile } from "./scripts/migration-plan.mjs";
 
-/** The files `src/lib/db.ts` globs — same directory, same non-recursive scope. */
+/** Whether the migration tree contains a SQL file for the PGLite bootstrap. */
 function hasGlobbedMigrations(root: string): boolean {
+  const visit = (directory: string): boolean => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory() ? visit(path) : isMigrationFile(entry.name)) return true;
+    }
+    return false;
+  };
+
   try {
-    return readdirSync(join(root, "migrations")).some(isMigrationFile);
+    return visit(join(root, "migrations"));
   } catch {
     return false;
   }
@@ -150,11 +158,16 @@ export default defineConfig(({ command, isPreview }) => ({
     host: "0.0.0.0",
     port: 8080,
     strictPort: true,
+    // Arena/Vercel previews use a generated public hostname that is not known
+    // when Vite starts. The server still binds to the sandbox only; this opts
+    // into host validation for that development preview proxy.
+    allowedHosts: true,
   },
   preview: {
     host: "127.0.0.1",
     port: 8081,
     strictPort: true,
+    allowedHosts: true,
   },
   resolve: { tsconfigPaths: true },
   plugins: [

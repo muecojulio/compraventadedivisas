@@ -6,8 +6,9 @@
  * in ../migrations to DATABASE_URL. Each file is applied in one transaction and
  * recorded in a `_migrations` table, so it runs once and is safe to re-run.
  *
- * The read is non-recursive, so the opt-in auth schema under migrations/auth/
- * is not applied to an app that never asked for sign-in.
+ * The migration tree is discovered recursively. This is important for the
+ * Better Auth schema under migrations/auth/; otherwise a production database
+ * would build successfully but fail on the first authenticated request.
  *
  * No DATABASE_URL (local / preview builds) -> skip; the PGLite fallback applies
  * the same files at startup instead (see src/lib/db.ts).
@@ -16,9 +17,9 @@ import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import pg from "pg";
-import { pendingMigrations } from "./migration-plan.mjs";
+import { isMigrationFile, pendingMigrations } from "./migration-plan.mjs";
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = process.env.DATABASE_URL?.trim() || undefined;
 if (!databaseUrl) {
   console.log(
     "[migrate] DATABASE_URL not set — skipping (the PGLite fallback migrates itself).",
@@ -28,16 +29,31 @@ if (!databaseUrl) {
 
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
 
+/** Return every SQL file below migrations/, including nested feature schemas. */
+async function listMigrationPaths(directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const paths = [];
+  for (const entry of entries) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      paths.push(...(await listMigrationPaths(path)));
+    } else if (entry.isFile() && isMigrationFile(entry.name)) {
+      paths.push(path);
+    }
+  }
+  return paths;
+}
+
 async function main() {
-  let entries;
+  let paths;
   try {
-    entries = await readdir(migrationsDir);
+    paths = await listMigrationPaths(migrationsDir);
   } catch {
     console.log("[migrate] no migrations/ directory — nothing to do.");
     return;
   }
   // An app with no schema of its own must not pay for a database connection.
-  if (pendingMigrations(entries, []).length === 0) {
+  if (pendingMigrations(paths, []).length === 0) {
     console.log("[migrate] no migrations — nothing to do.");
     return;
   }
@@ -53,8 +69,8 @@ async function main() {
     );
 
     let count = 0;
-    for (const { name } of pendingMigrations(entries, applied)) {
-      const text = await readFile(join(migrationsDir, name), "utf8");
+    for (const { name, path } of pendingMigrations(paths, applied)) {
+      const text = await readFile(path, "utf8");
       try {
         await client.query("BEGIN");
         // pg's simple-query protocol runs a whole multi-statement file at once.

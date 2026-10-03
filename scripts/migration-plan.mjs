@@ -4,12 +4,12 @@
  * (deploy, `readdir`) and `src/lib/db.ts` (PGLite preview, `import.meta.glob`).
  *
  * Applied files are keyed by BASENAME, so the same file applies once no matter
- * which directory it is globbed from. That is what makes the auth schema safe to
- * copy from `migrations/auth/` into `migrations/` when an app turns sign-in on:
- * a database that already has `0001_auth.sql` will not re-run it.
+ * which directory it is discovered from. That also means a database that
+ * already has `0001_auth.sql` will not re-run it if the file is ever moved
+ * between migration subdirectories.
  *
- * Neither applier descends into subdirectories, so `migrations/auth/*.sql` is
- * out of scope for both until it is copied up.
+ * Both appliers discover the migration tree recursively, so
+ * `migrations/auth/*.sql` is applied from its canonical source location.
  */
 
 /**
@@ -18,7 +18,7 @@
  * @returns {string}
  */
 export function migrationName(path) {
-  return path.split("/").pop() ?? path;
+  return path.split(/[\\/]/).pop() ?? path;
 }
 
 /**
