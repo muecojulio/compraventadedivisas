@@ -1,3 +1,6 @@
 {
-  "installCommand": "npm install --omit=dev --no-audit --no-fund"
+  "installCommand": "npm install --omit=dev --no-audit --no-fund",
+  "buildCommand": "npm run build:deploy",
+  "framework": "vite",
+  "outputDirectory": "dist"
 }
