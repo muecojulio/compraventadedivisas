@@ -11,15 +11,16 @@
   },
   "scripts": {
     "dev": "node scripts/with-app-env.mjs vite dev --host 0.0.0.0 --port 8080",
-    "build": "node scripts/with-app-env.mjs vite build && npm run db:migrate",
+    "build": "node scripts/with-app-env.mjs vite build",
     "db:migrate": "node scripts/migrate.mjs",
+    "build:deploy": "npm run build && npm run db:migrate",
     "build:dev": "node scripts/with-app-env.mjs vite build --mode development",
     "preview": "node scripts/with-app-env.mjs vite preview",
     "preview:restart": "node scripts/preview.mjs restart",
     "preview:stop": "node scripts/preview.mjs stop",
     "typecheck": "tsc --noEmit",
     "check:auth": "node scripts/check-auth-invariant.mjs",
-    "test": "node --test 'scripts/**/*.test.mjs' && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/app-data/readiness-schedule.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts",
+    "test": "node --test 'scripts/**/*.test.mjs' && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/app-data/readiness-schedule.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/session-context.test.ts src/lib/auth/short-expiry.test.ts src/lib/auth/resolve-user-email.test.ts src/lib/auth/resolve-user-id.test.ts src/lib/auth/session-check.test.ts src/lib/data/rules.test.ts src/lib/data/sync-state.test.ts src/lib/data/tenant-rules.test.ts src/lib/data/tenant-sync.test.ts src/lib/data/tenant-validators.test.ts src/lib/data/validation.test.ts src/lib/db/db.test.ts src/lib/geo/country-select.test.ts src/lib/instrumentation/object-diff.test.ts src/lib/status/availability.test.ts src/lib/status/maintenance-mode.test.ts src/lib/status/revenue-status.test.ts src/lib/status/worker-status.test.ts src/lib/status/tenant-status.test.ts src/lib/storage/blob.test.ts src/lib/storage/file-system.test.ts src/lib/ttl/ttl.test.ts src/lib/windows/response-signature.test.ts src/lib/tenant-snapshot/tenant-snapshot.test.ts src/lib/tenant-balance/tenant-balance.test.ts src/lib/project-activities/project-activities.test.ts src/lib/webhooks/webhook-delivery.test.ts",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
