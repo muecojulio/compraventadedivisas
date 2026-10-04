@@ -1,7 +1,8 @@
-import { useRef, type KeyboardEvent, type ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import { motion } from "motion/react";
 import { PRESS_SPRING, SOFT_SPRING, cx } from "./springs";
 import { useMotionOff, useSpringTransition } from "./use-spring";
+import { MotionRail } from "./motion-rail";
 
 export type MotionTabItem<T extends string> = {
   id: T;
@@ -20,10 +21,7 @@ export type MotionTabsProps<T extends string> = {
   className?: string;
 };
 
-/**
- * Pestañas con píldora líquida: la pastilla verde viaja de una pestaña a otra
- * con física de resorte en lugar de aparecer de golpe.
- */
+/** Pestañas con píldora elástica, scroll horizontal asistido y teclado completo. */
 export function MotionTabs<T extends string>({
   items,
   value,
@@ -34,7 +32,6 @@ export function MotionTabs<T extends string>({
   layoutId,
   className,
 }: MotionTabsProps<T>) {
-  const listRef = useRef<HTMLDivElement>(null);
   const reduced = useMotionOff();
   const pressTransition = useSpringTransition(PRESS_SPRING);
   const pillTransition = useSpringTransition(SOFT_SPRING);
@@ -53,21 +50,23 @@ export function MotionTabs<T extends string>({
     else if (event.key === "Home") next = 0;
     else if (event.key === "End") next = count - 1;
     else return;
+
     event.preventDefault();
     const item = items[next];
     if (!item) return;
     onChange(item.id);
-    const buttons = listRef.current?.querySelectorAll<HTMLButtonElement>("[role='tab']");
-    buttons?.[next]?.focus();
+    event.currentTarget.querySelectorAll<HTMLButtonElement>("[role='tab']")[next]?.focus();
   }
 
   return (
-    <div
-      ref={listRef}
+    <MotionRail
+      activeKey={value}
+      ariaLabel={ariaLabel}
       className={cx("mui-tablist", className)}
-      role="tablist"
-      aria-label={ariaLabel}
+      frameClassName="mui-tabs-frame"
+      hint="Desliza"
       onKeyDown={handleKeyDown}
+      role="tablist"
     >
       {items.map((item) => {
         const selected = item.id === value;
@@ -83,7 +82,7 @@ export function MotionTabs<T extends string>({
             onClick={() => onChange(item.id)}
             className={cx("mui-tab", selected && "is-selected")}
             whileHover={reduced ? undefined : { y: -1 }}
-            whileTap={reduced ? undefined : { scale: 0.94 }}
+            whileTap={reduced ? undefined : { scale: 0.96 }}
             transition={pressTransition}
           >
             {selected ? (
@@ -103,6 +102,6 @@ export function MotionTabs<T extends string>({
           </motion.button>
         );
       })}
-    </div>
+    </MotionRail>
   );
 }

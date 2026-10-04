@@ -28,8 +28,14 @@
     font-family: var(--font-sans);
     line-height: 1.5;
   }
-  h1, h2, h3 { text-wrap: balance; }
-  p { text-wrap: pretty; }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
   button:not(:disabled),
   [role="button"]:not(:disabled),
   [role="switch"]:not(:disabled),
@@ -87,8 +93,10 @@
     transition: opacity 220ms var(--mui-ease-out);
     pointer-events: none;
   }
-  .mui-button:hover:not(:disabled)::after {
-    opacity: 1;
+  @media (hover: hover) and (pointer: fine) {
+    .mui-button:hover:not(:disabled)::after {
+      opacity: 1;
+    }
   }
   .mui-button:active:not(:disabled) {
     box-shadow:
@@ -146,9 +154,30 @@
     background: transparent;
     box-shadow: none;
   }
-  .mui-button--quiet:hover:not(:disabled) {
-    background: color-mix(in oklab, var(--color-primary-soft) 70%, transparent);
-    box-shadow: 0 2px 0 color-mix(in oklab, var(--color-line) 80%, transparent);
+  @media (hover: hover) and (pointer: fine) {
+    .mui-button--quiet:hover:not(:disabled) {
+      background: color-mix(in oklab, var(--color-primary-soft) 70%, transparent);
+      box-shadow: 0 2px 0 color-mix(in oklab, var(--color-line) 80%, transparent);
+    }
+  }
+  .mui-button.is-success:not(:disabled) {
+    outline: 2px solid color-mix(in oklab, var(--color-primary) 26%, transparent);
+    outline-offset: 2px;
+  }
+  .mui-button.is-error:not(:disabled) {
+    outline: 2px solid color-mix(in oklab, var(--color-accent) 42%, transparent);
+    outline-offset: 2px;
+  }
+  .mui-button.is-success .mui-button__icon {
+    color: var(--color-primary);
+  }
+  .mui-button--primary.is-success .mui-button__icon,
+  .mui-button--ink.is-success .mui-button__icon,
+  .mui-button--accent.is-success .mui-button__icon {
+    color: #ddffec;
+  }
+  .mui-button.is-error .mui-button__icon {
+    color: var(--color-accent);
   }
   .mui-button--block {
     width: 100%;
@@ -163,7 +192,7 @@
     place-items: center;
   }
   .mui-button--sm {
-    height: 38px;
+    height: 44px;
     padding: 0 13px;
     font-size: 13px;
   }
@@ -179,6 +208,83 @@
   }
   .mui-button.is-busy .mui-button__icon {
     animation: mui-spin 1.15s linear infinite;
+  }
+
+  /* ---------- Carriles horizontales con scroll nativo y snap ---------- */
+  .mui-rail-frame {
+    position: relative;
+    min-width: 0;
+    --mui-rail-bg: var(--color-paper);
+  }
+  .mui-rail-frame::before,
+  .mui-rail-frame::after {
+    content: "";
+    position: absolute;
+    z-index: 3;
+    top: 2px;
+    bottom: 8px;
+    width: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms var(--mui-ease-out);
+  }
+  .mui-rail-frame::before {
+    left: 0;
+    background: linear-gradient(90deg, var(--mui-rail-bg), transparent);
+  }
+  .mui-rail-frame::after {
+    right: 0;
+    background: linear-gradient(270deg, var(--mui-rail-bg), transparent);
+  }
+  .mui-rail-frame[data-scroll-left="true"]::before,
+  .mui-rail-frame[data-scroll-right="true"]::after {
+    opacity: 0.94;
+  }
+  .mui-rail {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 3px 2px 8px;
+    overscroll-behavior-x: contain;
+    scroll-padding-inline: 12px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    touch-action: pan-x pan-y;
+  }
+  .mui-rail::-webkit-scrollbar {
+    display: none;
+  }
+  .mui-rail > * {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+  .mui-rail__hint {
+    position: absolute;
+    z-index: 4;
+    top: 50%;
+    right: 3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    border: 1px solid color-mix(in oklab, var(--color-line) 80%, transparent);
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--mui-rail-bg) 94%, transparent);
+    padding: 5px 8px;
+    color: var(--color-muted);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    box-shadow: 0 2px 8px rgba(20, 38, 31, 0.1);
+    pointer-events: none;
+    transform: translateY(-50%);
+    animation: mui-hint-nudge 1.9s var(--mui-ease-out) 2;
+  }
+  .mui-tabs-frame {
+    --mui-rail-bg: var(--color-paper);
   }
 
   /* ---------- Pestañas: píldora que se desliza con resorte ---------- */
@@ -203,7 +309,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    height: 40px;
+    height: 44px;
     isolation: isolate;
     border: 0;
     border-radius: 999px;
@@ -218,8 +324,10 @@
     -webkit-tap-highlight-color: transparent;
     transition: color 180ms var(--mui-ease-out);
   }
-  .mui-tab:hover {
-    color: var(--color-ink);
+  @media (hover: hover) and (pointer: fine) {
+    .mui-tab:hover {
+      color: var(--color-ink);
+    }
   }
   .mui-tab[aria-selected="true"] {
     color: var(--color-on-primary);
@@ -241,6 +349,18 @@
     box-shadow:
       0 3px 0 var(--mui-edge-primary),
       0 9px 18px rgba(8, 68, 49, 0.2);
+  }
+  .mui-panel-swipe-zone {
+    min-width: 0;
+    touch-action: auto;
+  }
+  .mui-panel-swipe-hint {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    margin: 0 4px 10px;
+    color: var(--color-muted);
+    font-size: 11px;
   }
 
   /* ---------- Menús de selección (chips, filtros) con píldora líquida ---------- */
@@ -268,8 +388,10 @@
       border-color 180ms var(--mui-ease-out),
       background-color 180ms var(--mui-ease-out);
   }
-  .mui-chip:hover {
-    border-color: color-mix(in oklab, var(--color-primary) 40%, var(--color-line));
+  @media (hover: hover) and (pointer: fine) {
+    .mui-chip:hover {
+      border-color: color-mix(in oklab, var(--color-primary) 40%, var(--color-line));
+    }
   }
   .mui-chip:focus-visible {
     outline: 3px solid rgba(14, 107, 84, 0.34);
@@ -280,7 +402,7 @@
     color: var(--color-on-primary);
   }
   .mui-chip--sm {
-    height: 38px;
+    height: 44px;
     font-size: 13px;
     padding: 0 12px;
   }
@@ -369,7 +491,7 @@
   }
   .mui-switch__track {
     position: absolute;
-    inset: 0;
+    inset: auto;
     border: 1px solid rgba(18, 50, 35, 0.1);
     border-radius: inherit;
     box-shadow: inset 0 1px 2px rgba(12, 42, 28, 0.14);
@@ -504,24 +626,120 @@
     position: absolute;
     inset: 0;
     z-index: -1;
-    background: radial-gradient(240px 170px at var(--mui-mx, 50%) var(--mui-my, 0%), var(--mui-glow-primary), transparent 72%);
+    background: radial-gradient(
+      240px 170px at var(--mui-mx, 50%) var(--mui-my, 0%),
+      var(--mui-glow-primary),
+      transparent 72%
+    );
     opacity: 0;
     transition: opacity 300ms var(--mui-ease-out);
     pointer-events: none;
   }
-  .mui-card:hover::before,
   .mui-card:focus-visible::before {
     opacity: 1;
   }
-  .mui-card:hover {
-    border-color: color-mix(in oklab, var(--color-primary) 34%, var(--color-line));
-    box-shadow: 0 12px 26px rgba(20, 38, 31, 0.09);
+  @media (hover: hover) and (pointer: fine) {
+    .mui-card:hover::before {
+      opacity: 1;
+    }
+    .mui-card:hover {
+      border-color: color-mix(in oklab, var(--color-primary) 34%, var(--color-line));
+      box-shadow: 0 12px 26px rgba(20, 38, 31, 0.09);
+    }
   }
   .mui-card.is-active {
     border-color: var(--color-primary);
   }
   .mui-card--accent::before {
-    background: radial-gradient(240px 170px at var(--mui-mx, 50%) var(--mui-my, 0%), var(--mui-glow-accent), transparent 72%);
+    background: radial-gradient(
+      240px 170px at var(--mui-mx, 50%) var(--mui-my, 0%),
+      var(--mui-glow-accent),
+      transparent 72%
+    );
+  }
+  .place-swipe-shell {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: var(--radius-card);
+  }
+  .place-swipe-actions {
+    position: absolute;
+    z-index: 0;
+    inset: 0 0 0 auto;
+    display: flex;
+    width: 188px;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 7px;
+    background: linear-gradient(
+      135deg,
+      var(--color-primary-soft),
+      color-mix(in oklab, var(--color-surface) 90%, var(--color-primary-soft))
+    );
+    padding: 12px;
+  }
+  .place-swipe-actions__label {
+    padding-left: 2px;
+    color: var(--color-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .place-swipe-action {
+    width: 100%;
+    justify-content: flex-start;
+    border-radius: 12px;
+    padding-inline: 10px;
+    font-size: 12px;
+  }
+  .place-swipe-front {
+    position: relative;
+    z-index: 1;
+    touch-action: pan-y;
+    will-change: transform;
+  }
+  .place-card__select {
+    min-height: 44px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    touch-action: pan-y;
+  }
+  .place-card__select:focus-visible {
+    border-radius: 10px;
+    outline: 3px solid rgba(14, 107, 84, 0.34);
+    outline-offset: 2px;
+  }
+  .place-swipe-toggle {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    gap: 6px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    padding: 0 5px;
+    color: var(--color-muted);
+    font-size: 12px;
+    font-weight: 600;
+    touch-action: manipulation;
+  }
+  .place-swipe-toggle:focus-visible {
+    outline: 3px solid rgba(14, 107, 84, 0.34);
+    outline-offset: 1px;
+  }
+  .place-swipe-toggle svg {
+    transition: transform 180ms var(--mui-ease-out);
+  }
+  .place-swipe-toggle svg.is-open {
+    transform: rotate(180deg);
+  }
+  .place-card__desktop-actions {
+    display: none;
   }
   .mui-sweep {
     position: absolute;
@@ -530,6 +748,34 @@
     height: 42%;
     background: linear-gradient(180deg, transparent, rgba(174, 232, 201, 0.55), transparent);
     pointer-events: none;
+  }
+  .mui-quote-rail-frame {
+    margin-inline: -2px;
+  }
+  .mui-currency-rail-frame {
+    --mui-rail-bg: var(--color-surface);
+  }
+  .mui-currency-rail {
+    padding-block-end: 5px;
+  }
+  .mui-quote-rail {
+    align-items: stretch;
+    gap: 12px;
+    padding: 5px 4px 13px;
+  }
+  .mui-quote-rail > .mui-card {
+    flex: 0 0 min(88%, 360px);
+    min-width: 0;
+    scroll-snap-align: center;
+  }
+  .mui-airport-rail {
+    align-items: stretch;
+    gap: 9px;
+  }
+  .mui-airport-card {
+    flex: 0 0 min(84%, 350px);
+    min-height: 76px;
+    scroll-snap-align: center;
   }
 
   /* ---------- Campos con respuesta elástica al foco ---------- */
@@ -581,6 +827,162 @@
     height: 44px;
     border-radius: 12px;
     font-size: 14px;
+  }
+
+  /* ---------- Combobox con búsqueda y lista accesible ---------- */
+  .mui-combobox {
+    position: relative;
+    display: block;
+    min-width: 0;
+  }
+  .mui-combobox.is-open {
+    z-index: 40;
+  }
+  .mui-combobox__box {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 48px;
+    border: 1px solid var(--color-line);
+    border-radius: 16px;
+    background: var(--color-paper);
+    padding: 0 7px 0 14px;
+    transition:
+      border-color 180ms var(--mui-ease-out),
+      box-shadow 180ms var(--mui-ease-out),
+      background-color 180ms var(--mui-ease-out);
+  }
+  .mui-combobox__box.is-open,
+  .mui-combobox:focus-within .mui-combobox__box {
+    border-color: var(--color-primary);
+    background: var(--color-surface);
+    box-shadow: 0 0 0 4px rgba(14, 107, 84, 0.12);
+  }
+  .mui-combobox__search-icon {
+    flex: 0 0 auto;
+    color: var(--color-muted);
+  }
+  .mui-combobox__input {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 46px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--color-ink);
+    font-size: 16px;
+  }
+  .mui-combobox__input::placeholder {
+    color: color-mix(in oklab, var(--color-muted) 76%, transparent);
+  }
+  .mui-combobox__input:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  .mui-combobox__trigger {
+    display: inline-grid;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--color-muted);
+    touch-action: manipulation;
+  }
+  .mui-combobox__trigger:focus-visible {
+    outline: 3px solid rgba(14, 107, 84, 0.34);
+    outline-offset: -2px;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .mui-combobox__trigger:hover:not(:disabled) {
+      background: var(--color-primary-soft);
+      color: var(--color-primary);
+    }
+  }
+  .mui-combobox.is-disabled .mui-combobox__box {
+    opacity: 0.65;
+  }
+  .mui-combobox__popover-anchor {
+    position: absolute;
+    z-index: 40;
+    top: calc(100% + 7px);
+    right: 0;
+    left: 0;
+    pointer-events: none;
+  }
+  .mui-combobox__popover-anchor[data-open="false"] {
+    pointer-events: none;
+  }
+  .mui-combobox__popover {
+    max-height: min(48vh, 300px);
+    overflow-y: auto;
+    border: 1px solid var(--color-line);
+    border-radius: 17px;
+    background: var(--color-surface);
+    padding: 5px;
+    box-shadow: 0 16px 34px rgba(20, 38, 31, 0.16);
+    overscroll-behavior: contain;
+    pointer-events: auto;
+  }
+  .mui-combobox__option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 46px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    padding: 7px 10px;
+    color: var(--color-ink);
+    text-align: left;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mui-combobox__option.is-active {
+    background: var(--color-primary-soft);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .mui-combobox__option:hover {
+      background: var(--color-primary-soft);
+    }
+  }
+  .mui-combobox__option.is-selected {
+    color: var(--color-primary);
+  }
+  .mui-combobox__option:focus-visible {
+    outline: 3px solid rgba(14, 107, 84, 0.34);
+    outline-offset: -2px;
+  }
+  .mui-combobox__option-icon {
+    display: inline-grid;
+    flex: 0 0 auto;
+    place-items: center;
+  }
+  .mui-combobox__option-copy {
+    display: grid;
+    min-width: 0;
+    gap: 1px;
+  }
+  .mui-combobox__option-label {
+    font-size: 14px;
+    font-weight: 650;
+  }
+  .mui-combobox__option-description {
+    color: var(--color-muted);
+    font-size: 12px;
+  }
+  .mui-combobox__check {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+  .mui-combobox__empty {
+    margin: 0;
+    padding: 13px 11px;
+    color: var(--color-muted);
+    font-size: 13px;
   }
 
   /* ---------- Secciones plegables (acordeón elástico) ---------- */
@@ -688,6 +1090,8 @@
   }
   .mui-notice__close {
     display: inline-grid;
+    width: 44px;
+    height: 44px;
     flex: 0 0 auto;
     place-items: center;
     border: 0;
@@ -696,12 +1100,15 @@
     padding: 4px;
     color: var(--color-muted);
   }
-  .mui-notice__close:hover {
-    color: var(--color-ink);
-    background: rgba(20, 38, 31, 0.06);
+  @media (hover: hover) and (pointer: fine) {
+    .mui-notice__close:hover {
+      color: var(--color-ink);
+      background: rgba(20, 38, 31, 0.06);
+    }
   }
   .mui-notice__restore {
     display: inline-flex;
+    min-height: 44px;
     align-items: center;
     gap: 7px;
     justify-self: start;
@@ -712,9 +1119,11 @@
     color: var(--color-muted);
     font-size: 12px;
   }
-  .mui-notice__restore:hover {
-    color: var(--color-ink);
-    border-color: color-mix(in oklab, var(--color-primary) 40%, var(--color-line));
+  @media (hover: hover) and (pointer: fine) {
+    .mui-notice__restore:hover {
+      color: var(--color-ink);
+      border-color: color-mix(in oklab, var(--color-primary) 40%, var(--color-line));
+    }
   }
   .mui-disclosure__panel {
     overflow: hidden;
@@ -764,7 +1173,77 @@
   }
 }
 
+@keyframes mui-hint-nudge {
+  0%,
+  100% {
+    transform: translateY(-50%);
+  }
+  50% {
+    transform: translate(3px, -50%);
+  }
+}
+
+@media (max-width: 639px) {
+  .mui-panel-swipe-hint {
+    display: flex;
+  }
+}
+
+@media (min-width: 640px) {
+  .mui-airport-rail {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+  .mui-airport-rail > .mui-airport-card {
+    width: 100%;
+    min-width: 0;
+    flex: initial;
+  }
+}
+
+@media (min-width: 768px) {
+  .mui-quote-rail {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+  .mui-quote-rail > .mui-card {
+    flex: initial;
+  }
+  .place-swipe-shell {
+    overflow: visible;
+  }
+  .place-swipe-actions,
+  .place-swipe-toggle {
+    display: none;
+  }
+  .place-card__desktop-actions {
+    display: flex;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .mui-rail {
+    scroll-behavior: auto;
+  }
+  .mui-rail-frame::before,
+  .mui-rail-frame::after,
+  .mui-combobox__box {
+    transition-duration: 1ms;
+  }
+  .mui-rail__hint {
+    animation: none;
+  }
+  .mui-rail-frame[data-scroll-left="true"]::before,
+  .mui-rail-frame[data-scroll-right="true"]::after {
+    opacity: 0.7;
+  }
+  .mui-panel-swipe-hint {
+    transition: none;
+  }
   .mui-card {
     animation: none;
   }
@@ -778,7 +1257,10 @@
     transition-duration: 1ms;
   }
   .mui-button.is-busy .mui-button__icon {
-    animation-duration: 2.4s;
+    animation: none;
+  }
+  .place-swipe-front {
+    will-change: auto;
   }
   .mui-live-dot::after {
     animation: none;
