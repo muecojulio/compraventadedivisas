@@ -1,7 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { LocateFixed, Plane, Search } from "lucide-react";
+import { Banknote, LocateFixed, MapPin, Navigation, Phone, Plane, Search } from "lucide-react";
 import { Flag } from "@/components/flags";
 import { SlippyMap } from "@/components/slippy-map";
+import {
+  GlowCard,
+  LiquidSwitch,
+  MotionButton,
+  MotionChip,
+  MotionDisclosure,
+  MotionField,
+  MotionLink,
+  MotionNotice,
+} from "@/components/motion-ui";
 import {
   AIRPORTS,
   DEFAULT_ORIGIN,
@@ -27,89 +37,98 @@ export function NearbyPanel({ rates }: { rates: RatesResponse | null }) {
   const [geoError, setGeoError] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   const [locating, setLocating] = useState(false);
+
+  const search = () => {
+    setSearching(true);
+    setGeoError(null);
+    void fetch(`/api/geocode?q=${encodeURIComponent(query)}`)
+      .then(async (res) => {
+        const body = (await res.json()) as { hits?: GeoHit[]; error?: string };
+        if (!res.ok) throw new Error(body.error || "Error");
+        setHits(body.hits ?? []);
+        const first = body.hits?.[0];
+        if (first) setOrigin({ lat: first.lat, lon: first.lon, label: first.label });
+        else setGeoError("No encontré ese lugar.");
+      })
+      .catch((error: unknown) => setGeoError(error instanceof Error ? error.message : "Error"))
+      .finally(() => setSearching(false));
+  };
+
   return (
     <section className="space-y-4">
       <p className="text-pretty text-muted">
         Casas de cambio y Banco Azteca a un máximo de 5 km del punto de partida. El círculo del mapa es ese radio.
       </p>
-      <form
-        className="flex flex-col gap-2 sm:flex-row"
-        onSubmit={(event) => {
-          event.preventDefault();
-          setSearching(true);
-          setGeoError(null);
-          void fetch(`/api/geocode?q=${encodeURIComponent(query)}`)
-            .then(async (res) => {
-              const body = (await res.json()) as { hits?: GeoHit[]; error?: string };
-              if (!res.ok) throw new Error(body.error || "Error");
-              setHits(body.hits ?? []);
-              const first = body.hits?.[0];
-              if (first) setOrigin({ lat: first.lat, lon: first.lon, label: first.label });
-              else setGeoError("No encontré ese lugar.");
-            })
-            .catch((error: unknown) => setGeoError(error instanceof Error ? error.message : "Error"))
-            .finally(() => setSearching(false));
-        }}
-      >
-        <label className="relative block flex-1">
-          <span className="sr-only">Punto de partida</span>
-          <Search className="pointer-events-none absolute top-3.5 left-3 size-4 text-muted" aria-hidden="true" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Dirección, colonia o ciudad"
-            className="h-12 w-full rounded-full border border-line bg-surface pr-4 pl-10 outline-none focus:border-primary"
-          />
-        </label>
-        <button type="submit" className="press h-12 rounded-full bg-primary px-5 font-semibold text-on-primary" disabled={searching}>
-          {searching ? "Buscando…" : "Fijar punto"}
-        </button>
-        <button
-          type="button"
-          className="press inline-flex h-12 items-center justify-center gap-2 rounded-full border border-line bg-surface px-4 font-semibold"
-          onClick={() => {
-            if (!navigator.geolocation) {
-              setGeoError("Este dispositivo no comparte ubicación.");
-              return;
-            }
-            setLocating(true);
-            setGeoError(null);
-            navigator.geolocation.getCurrentPosition(
-              (pos) => {
-                setOrigin({
-                  lat: pos.coords.latitude,
-                  lon: pos.coords.longitude,
-                  label: "Mi ubicación",
-                });
-                setLocating(false);
-              },
-              () => {
-                setGeoError("No se autorizó la ubicación. Puedes escribir un punto de partida.");
-                setLocating(false);
-              },
-              { enableHighAccuracy: true, timeout: 10000 },
-            );
-          }}
-        >
-          <LocateFixed className="size-4" aria-hidden="true" />
-          {locating ? "Ubicando…" : "Mi ubicación"}
-        </button>
-      </form>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+        <MotionField
+          className="flex-1"
+          label="Punto de partida"
+          value={query}
+          onValueChange={setQuery}
+          placeholder="Dirección, colonia o ciudad"
+          icon={<Search className="size-4" aria-hidden="true" />}
+          onSubmit={search}
+        />
+        <div className="flex gap-2">
+          <MotionButton tone="primary" size="lg" leading={<Search className="size-4" aria-hidden="true" />} busy={searching} onClick={search}>
+            {searching ? "Buscando…" : "Fijar punto"}
+          </MotionButton>
+          <MotionButton
+            tone="outline"
+            size="lg"
+            leading={<LocateFixed className="size-4" aria-hidden="true" />}
+            busy={locating}
+            onClick={() => {
+              if (!navigator.geolocation) {
+                setGeoError("Este dispositivo no comparte ubicación.");
+                return;
+              }
+              setLocating(true);
+              setGeoError(null);
+              navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                  setOrigin({
+                    lat: pos.coords.latitude,
+                    lon: pos.coords.longitude,
+                    label: "Mi ubicación",
+                  });
+                  setLocating(false);
+                },
+                () => {
+                  setGeoError("No se autorizó la ubicación. Puedes escribir un punto de partida.");
+                  setLocating(false);
+                },
+                { enableHighAccuracy: true, timeout: 10000 },
+              );
+            }}
+          >
+            {locating ? "Ubicando…" : "Mi ubicación"}
+          </MotionButton>
+        </div>
+      </div>
       {hits.length > 1 ? (
-        <div className="flex flex-wrap gap-2">
-          {hits.map((hit) => (
-            <button
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Resultados de la búsqueda">
+          {hits.map((hit, index) => (
+            <MotionChip
               key={`${hit.lat}-${hit.lon}`}
-              type="button"
-              className="press h-10 rounded-full border border-line bg-surface px-3 text-sm"
+              size="sm"
+              tone="primary"
+              selected={origin.label === hit.label}
+              layoutId="geocode-hit-pill"
+              leading={<MapPin className="size-3.5" aria-hidden="true" />}
               onClick={() => setOrigin({ lat: hit.lat, lon: hit.lon, label: hit.label })}
+              enterDelay={index * 45}
             >
               {hit.label}
-            </button>
+            </MotionChip>
           ))}
         </div>
       ) : null}
-      {geoError ? <p className="text-sm text-accent">{geoError}</p> : null}
+      {geoError ? (
+        <MotionNotice tone="danger" title="No pude leer ese punto">
+          {geoError}
+        </MotionNotice>
+      ) : null}
       <PlaceResults origin={origin} rates={rates} airport={null} />
     </section>
   );
@@ -124,7 +143,7 @@ export function AirportPanel({ rates }: { rates: RatesResponse | null }) {
       <p className="text-pretty text-muted">
         Aeropuertos de México, Estados Unidos, Japón y Canadá. Al elegir uno se buscan casas de cambio y Banco Azteca a 5 km, sobre todo los de la zona de la terminal.
       </p>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar aeropuertos por país">
         {(
           [
             ["MX", "México"],
@@ -133,44 +152,41 @@ export function AirportPanel({ rates }: { rates: RatesResponse | null }) {
             ["CA", "Canadá"],
           ] as const
         ).map(([id, label]) => (
-          <button
+          <MotionChip
             key={id}
-            type="button"
+            tone="ink"
+            selected={country === id}
+            layoutId="airport-country-pill"
+            leading={<Flag code={id} className="h-4 w-6 rounded-sm" />}
             onClick={() => {
               setCountry(id);
               setAirport(null);
             }}
-            className={
-              "press inline-flex h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold " +
-              (country === id ? "bg-ink text-on-primary" : "border border-line bg-surface")
-            }
           >
-            <Flag code={id} className="h-4 w-6 rounded-sm" />
             {label}
-          </button>
+          </MotionChip>
         ))}
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
-        {list.map((item) => {
+        {list.map((item, index) => {
           const on = airport?.iata === item.iata;
           return (
-            <button
+            <MotionChip
               key={item.iata}
-              type="button"
+              block
+              size="md"
+              tone="primary"
+              selected={on}
+              layoutId="airport-card-pill"
+              leading={<Plane className="size-5 shrink-0 text-primary" aria-hidden="true" />}
               onClick={() => setAirport(item)}
-              className={
-                "press flex h-auto items-center gap-3 rounded-card border px-3 py-3 text-left " +
-                (on ? "border-primary bg-primary-soft" : "border-line bg-surface")
-              }
+              enterDelay={index * 55}
             >
-              <Plane className="size-5 shrink-0 text-primary" aria-hidden="true" />
-              <span>
-                <span className="block font-semibold">
-                  {item.iata} · {item.name}
-                </span>
-                <span className="block text-sm text-muted">{item.city}</span>
+              <span className="block font-semibold">
+                {item.iata} · {item.name}
               </span>
-            </button>
+              <span className="block text-sm text-muted">{item.city}</span>
+            </MotionChip>
           );
         })}
       </div>
@@ -247,21 +263,13 @@ function PlaceResults({
           Punto: <span className="font-semibold text-ink">{origin.label}</span> · máximo 5 km
         </p>
         {airport ? (
-          <button
-            type="button"
-            role="switch"
-            aria-checked={onlyAirport}
-            onClick={() => setOnlyAirport((value) => !value)}
-            className="press inline-flex h-11 items-center gap-2 rounded-full border border-line bg-surface px-3 text-sm"
-          >
+          <span className="mui-pill h-11">
             Solo zona de aeropuerto
-            <span className={"h-6 w-11 rounded-full " + (onlyAirport ? "bg-primary" : "bg-line")}>
-              <span className={"mt-0.5 block h-5 w-5 rounded-full bg-surface transition-transform duration-200 " + (onlyAirport ? "translate-x-5" : "translate-x-0.5")} />
-            </span>
-          </button>
+            <LiquidSwitch checked={onlyAirport} onChange={setOnlyAirport} label="Mostrar solo la zona del aeropuerto" />
+          </span>
         ) : null}
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2" role="group" aria-label="Filtrar locales">
         {(
           [
             ["todas", "Todas"],
@@ -269,17 +277,16 @@ function PlaceResults({
             ["azteca", "Banco Azteca"],
           ] as const
         ).map(([id, label]) => (
-          <button
+          <MotionChip
             key={id}
-            type="button"
+            size="sm"
+            tone="primary"
+            selected={filter === id}
+            layoutId="place-filter-pill"
             onClick={() => setFilter(id)}
-            className={
-              "press h-10 rounded-full px-3 text-sm " +
-              (filter === id ? "bg-primary text-on-primary" : "border border-line bg-surface")
-            }
           >
             {label}
-          </button>
+          </MotionChip>
         ))}
       </div>
       <SlippyMap
@@ -288,16 +295,25 @@ function PlaceResults({
         selectedId={selected}
         onSelect={setSelected}
         radiusM={RADIUS_M}
+        loading={loading}
       />
-      {loading ? <p className="text-sm text-muted">Buscando en OpenStreetMap…</p> : null}
-      {error ? <p className="text-sm text-accent">{error}</p> : null}
+      {loading ? (
+        <MotionNotice tone="info" title="Buscando en OpenStreetMap…" dismissible={false}>
+          Los locales cercanos aparecen en cuanto llegan.
+        </MotionNotice>
+      ) : null}
+      {error ? (
+        <MotionNotice tone="danger" title="No pude cargar los locales">
+          {error}
+        </MotionNotice>
+      ) : null}
       {!loading && !error && places.length === 0 ? (
-        <p className="rounded-card border border-dashed border-line bg-surface px-4 py-6 text-sm text-pretty text-muted">
-          No hay casas de cambio ni Banco Azteca mapeados en este radio. OpenStreetMap no lista todos los locales; prueba otro punto o desactiva el filtro de aeropuerto.
-        </p>
+        <MotionNotice tone="info" title="Sin locales en este radio" dismissible={false}>
+          OpenStreetMap no lista todos los locales; prueba otro punto o desactiva el filtro de aeropuerto.
+        </MotionNotice>
       ) : null}
       <ul className="space-y-2">
-        {places.map((place) => (
+        {places.map((place, index) => (
           <li key={place.id}>
             <PlaceCard
               place={place}
@@ -306,6 +322,7 @@ function PlaceResults({
               usdMid={usd?.mxn ?? null}
               board={rates?.azteca ?? null}
               airport={airport}
+              index={index}
             />
           </li>
         ))}
@@ -321,6 +338,7 @@ function PlaceCard({
   usdMid,
   board,
   airport,
+  index = 0,
 }: {
   place: Place;
   active: boolean;
@@ -328,6 +346,7 @@ function PlaceCard({
   usdMid: number | null;
   board: RatesResponse["azteca"];
   airport: Airport | null;
+  index?: number;
 }) {
   const [seenBuy, setSeenBuy] = useState("");
   const [seenSell, setSeenSell] = useState("");
@@ -341,11 +360,11 @@ function PlaceCard({
   const maps = `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}`;
 
   return (
-    <article
-      className={
-        "rounded-card border bg-surface p-4 transition-colors duration-200 " +
-        (active ? "border-primary" : "border-line")
-      }
+    <GlowCard
+      className="p-4"
+      active={active}
+      tone={place.kind === "azteca" ? "accent" : "primary"}
+      enterDelay={Math.min(index, 6) * 45}
     >
       <button type="button" onClick={onSelect} className="flex w-full items-start justify-between gap-3 text-left">
         <span>
@@ -375,47 +394,61 @@ function PlaceCard({
         </p>
       </div>
       {place.kind === "casa" ? (
-        <div className="mt-3">
+        <MotionDisclosure
+          className="mt-3"
+          tone="accent"
+          icon={<Banknote className="size-4" aria-hidden="true" />}
+          title="Anota el tablero que viste"
+          hint="Compáralo con Banco Azteca en el momento"
+        >
           <p className="text-sm text-pretty text-muted">
             Esta casa no publica su tablero en una API abierta. Anota lo que veas en el local y compáralo con Banco Azteca.
           </p>
           <div className="mt-2 grid grid-cols-2 gap-2">
-            <label className="text-xs text-muted">
-              Te compran el USD
-              <input value={seenBuy} onChange={(event) => setSeenBuy(event.target.value)} inputMode="decimal" className="mt-1 h-11 w-full rounded-xl border border-line bg-paper px-3 text-sm text-ink" placeholder="16.90" />
-            </label>
-            <label className="text-xs text-muted">
-              Te venden el USD
-              <input value={seenSell} onChange={(event) => setSeenSell(event.target.value)} inputMode="decimal" className="mt-1 h-11 w-full rounded-xl border border-line bg-paper px-3 text-sm text-ink" placeholder="18.60" />
-            </label>
+            <MotionField
+              size="sm"
+              label="Te compran el USD"
+              value={seenBuy}
+              onValueChange={setSeenBuy}
+              inputMode="decimal"
+              placeholder="16.90"
+            />
+            <MotionField
+              size="sm"
+              label="Te venden el USD"
+              value={seenSell}
+              onValueChange={setSeenSell}
+              inputMode="decimal"
+              placeholder="18.60"
+            />
           </div>
           {azteca && Number.isFinite(buy) && buy > 0 ? (
             <p className="mt-2 text-sm">{buy >= azteca.compra ? "Te pagan igual o mejor que Azteca por tus dólares." : "Azteca te pagaría más por tus dólares."}</p>
           ) : null}
           {azteca && Number.isFinite(sell) && sell > 0 ? (
-            <p className="text-sm">{sell <= azteca.venta ? "Este local te vende el dólar igual o más barato que Azteca." : "Azteca vende el dólar más barato que este tablero."}</p>
+            <p className="mt-2 text-sm">{sell <= azteca.venta ? "Este local te vende el dólar igual o más barato que Azteca." : "Azteca vende el dólar más barato que este tablero."}</p>
           ) : null}
-        </div>
+        </MotionDisclosure>
       ) : (
         <p className="mt-3 text-sm text-pretty text-muted">
           Precio de referencia nacional de ventanilla. Confírmalo en sucursal antes de operar.
         </p>
       )}
       <div className="mt-3 flex flex-wrap gap-2">
-        <a href={maps} target="_blank" rel="noreferrer" className="press inline-flex h-11 items-center rounded-full bg-ink px-4 text-sm font-semibold text-on-primary">
+        <MotionLink href={maps} target="_blank" rel="noreferrer" tone="ink" size="md" leading={<Navigation className="size-4" aria-hidden="true" />}>
           Cómo llegar
-        </a>
+        </MotionLink>
         {place.phone ? (
-          <a href={`tel:${place.phone}`} className="press inline-flex h-11 items-center rounded-full border border-line px-4 text-sm">
+          <MotionLink href={`tel:${place.phone}`} size="md" leading={<Phone className="size-4" aria-hidden="true" />}>
             Llamar
-          </a>
+          </MotionLink>
         ) : null}
         {place.website ? (
-          <a href={place.website} target="_blank" rel="noreferrer" className="press inline-flex h-11 items-center rounded-full border border-line px-4 text-sm">
+          <MotionLink href={place.website} target="_blank" rel="noreferrer" size="md">
             Sitio
-          </a>
+          </MotionLink>
         ) : null}
       </div>
-    </article>
+    </GlowCard>
   );
 }

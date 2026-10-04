@@ -1,4 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { ArrowLeft } from "lucide-react";
+import { MotionRouterLink } from "@/components/motion-ui";
 
 export const Route = createFileRoute("/privacidad")({ component: Privacy });
 
@@ -6,9 +8,9 @@ function Privacy() {
   return (
     <main className="min-h-screen bg-paper text-ink">
       <div className="mx-auto max-w-2xl px-4 py-8">
-        <Link to="/" className="press inline-flex h-11 items-center text-sm font-semibold text-primary">
+        <MotionRouterLink to="/" tone="quiet" size="sm" leading={<ArrowLeft className="size-4" aria-hidden="true" />}>
           Volver
-        </Link>
+        </MotionRouterLink>
         <h1 className="mt-4 font-display text-4xl text-balance">Política de privacidad</h1>
         <div className="mt-6 space-y-4 text-pretty text-ink">
           <p>
