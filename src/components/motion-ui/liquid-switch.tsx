@@ -5,6 +5,10 @@ import { useSpringTransition } from "./use-spring";
 
 const TRACK_W = 46;
 const TRACK_H = 26;
+const TARGET_W = 56;
+const TARGET_H = 44;
+const TRACK_LEFT = (TARGET_W - TRACK_W) / 2;
+const TRACK_TOP = (TARGET_H - TRACK_H) / 2;
 const PAD = 3;
 const ORB = TRACK_H - PAD * 2;
 const TRAVEL = TRACK_W - ORB - PAD * 2;
@@ -52,20 +56,27 @@ export function LiquidSwitch({
         aria-describedby={descriptionId}
         disabled={disabled}
         className={cx("mui-switch", className)}
-        style={{ width: TRACK_W, height: TRACK_H }}
+        style={{ width: TARGET_W, height: TARGET_H }}
         onClick={() => onChange(!checked)}
         whileTap={disabled ? undefined : { scale: 0.94 }}
         transition={spring}
       >
         <motion.span
           className="mui-switch__track"
+          style={{ width: TRACK_W, height: TRACK_H, left: TRACK_LEFT, top: TRACK_TOP }}
           animate={{ backgroundColor: checked ? ON_COLOR : OFF_COLOR }}
           transition={spring}
           aria-hidden="true"
         />
         <span
           className="mui-switch__goo"
-          style={{ width: GOO_W, height: GOO_H, filter: `url(#${filterId})` }}
+          style={{
+            width: GOO_W,
+            height: GOO_H,
+            left: TRACK_LEFT + PAD,
+            top: TRACK_TOP + PAD,
+            filter: `url(#${filterId})`,
+          }}
           aria-hidden="true"
         >
           <motion.span
@@ -83,6 +94,7 @@ export function LiquidSwitch({
         </span>
         <motion.span
           className="mui-switch__glint"
+          style={{ left: TRACK_LEFT + PAD + 2, top: TRACK_TOP + PAD + 2 }}
           animate={{ x: checked ? TRAVEL : 0 }}
           transition={spring}
           aria-hidden="true"

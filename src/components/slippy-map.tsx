@@ -16,9 +16,18 @@ type Props = {
   loading?: boolean;
 };
 
-export function SlippyMap({ center, places, selectedId, onSelect, radiusM, loading = false }: Props) {
+export function SlippyMap({
+  center,
+  places,
+  selectedId,
+  onSelect,
+  radiusM,
+  loading = false,
+}: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ x: number; y: number; px: { x: number; y: number }; z: number } | null>(null);
+  const drag = useRef<{ x: number; y: number; px: { x: number; y: number }; z: number } | null>(
+    null,
+  );
   const [size, setSize] = useState({ w: 640, h: 320 });
   const [view, setView] = useState({ lat: center.lat, lon: center.lon, z: 13 });
   const reduced = useMotionOff();
@@ -77,6 +86,7 @@ export function SlippyMap({ center, places, selectedId, onSelect, radiusM, loadi
     <div
       ref={wrapRef}
       className="relative h-72 w-full touch-none overflow-hidden rounded-card border border-line bg-line select-none md:h-96"
+      data-swipe-ignore=""
       onPointerDown={(event) => {
         event.currentTarget.setPointerCapture(event.pointerId);
         drag.current = {
@@ -89,7 +99,11 @@ export function SlippyMap({ center, places, selectedId, onSelect, radiusM, loadi
       onPointerMove={(event) => {
         const start = drag.current;
         if (!start || start.z !== view.z) return;
-        const next = unproject(start.px.x - (event.clientX - start.x), start.px.y - (event.clientY - start.y), view.z);
+        const next = unproject(
+          start.px.x - (event.clientX - start.x),
+          start.px.y - (event.clientY - start.y),
+          view.z,
+        );
         setView((v) => ({ ...v, lat: next.lat, lon: next.lon }));
       }}
       onPointerUp={() => {
@@ -126,7 +140,8 @@ export function SlippyMap({ center, places, selectedId, onSelect, radiusM, loadi
       {places.map((place) => {
         const pos = markerStyle(place);
         const active = place.id === selectedId;
-        if (pos.left < -20 || pos.top < -20 || pos.left > size.w + 20 || pos.top > size.h + 20) return null;
+        if (pos.left < -20 || pos.top < -20 || pos.left > size.w + 20 || pos.top > size.h + 20)
+          return null;
         return (
           <motion.button
             key={place.id}
@@ -135,7 +150,7 @@ export function SlippyMap({ center, places, selectedId, onSelect, radiusM, loadi
             onPointerDown={(event) => event.stopPropagation()}
             onClick={() => onSelect(place.id)}
             className={cx(
-              "mui-marker absolute z-10 h-9 min-w-9 -translate-x-1/2 -translate-y-full rounded-full border px-2 text-xs font-semibold shadow-sm",
+              "mui-marker absolute z-10 h-11 min-w-11 -translate-x-1/2 -translate-y-full rounded-full border px-2 text-xs font-semibold shadow-sm",
               place.kind === "azteca"
                 ? "border-accent bg-accent text-on-primary"
                 : "border-primary bg-primary text-on-primary",
