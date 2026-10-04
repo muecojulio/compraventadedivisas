@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { RefreshCw, Shield } from "lucide-react";
 import { AirportPanel, NearbyPanel } from "@/components/places-board";
@@ -11,13 +11,18 @@ import {
   type RatesResponse,
 } from "@/lib/domain";
 
-type Tab = "cotizar" | "cerca" | "aeropuertos";
+type Tab = "cotizar" | "cerca" | "aeropuertos" | "interacciones";
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: "cotizar", label: "Cotizar" },
   { id: "cerca", label: "Cerca de mí" },
   { id: "aeropuertos", label: "Aeropuertos" },
+  { id: "interacciones", label: "Microinteracciones" },
 ];
+
+const MotionLab = lazy(() =>
+  import("@/components/interactions").then((module) => ({ default: module.MotionLab })),
+);
 
 export function ExchangeApp() {
   const [tab, setTab] = useState<Tab>("cotizar");
@@ -81,10 +86,33 @@ export function ExchangeApp() {
             return (
               <button
                 key={item.id}
+                id={`tab-${item.id}`}
                 type="button"
                 role="tab"
                 aria-selected={on}
+                aria-controls="panel-main"
+                tabIndex={on ? 0 : -1}
                 onClick={() => setTab(item.id)}
+                onKeyDown={(event) => {
+                  const currentIndex = TABS.findIndex((tabItem) => tabItem.id === item.id);
+                  const direction =
+                    event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+                  const nextIndex =
+                    event.key === "Home"
+                      ? 0
+                      : event.key === "End"
+                        ? TABS.length - 1
+                        : (currentIndex + direction + TABS.length) % TABS.length;
+                  if (direction === 0 && event.key !== "Home" && event.key !== "End") return;
+                  event.preventDefault();
+                  const nextTab = TABS[nextIndex];
+                  if (!nextTab) return;
+                  setTab(nextTab.id);
+                  const tabButtons = event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
+                    "[role=tab]",
+                  );
+                  tabButtons?.[nextIndex]?.focus();
+                }}
                 className={
                   "press h-11 shrink-0 rounded-full px-4 text-sm font-semibold transition-colors duration-200 " +
                   (on ? "bg-primary text-on-primary" : "border border-line bg-surface text-ink")
@@ -96,27 +124,43 @@ export function ExchangeApp() {
           })}
         </div>
 
-        {tab === "cotizar" ? (
-          <QuotePanel
-            rates={rates}
-            error={rateError}
-            loading={loadingRates}
-            auto={auto}
-            onAuto={setAuto}
-            code={code}
-            onCode={setCode}
-            amount={amount}
-            onAmount={setAmount}
-            toMxn={toMxn}
-            onToMxn={setToMxn}
-            onRetry={() => {
-              setLoadingRates(true);
-              setTick((value) => value + 1);
-            }}
-          />
-        ) : null}
-        {tab === "cerca" ? <NearbyPanel rates={rates} /> : null}
-        {tab === "aeropuertos" ? <AirportPanel rates={rates} /> : null}
+        <div id="panel-main" role="tabpanel" aria-labelledby={`tab-${tab}`} tabIndex={0}>
+          {tab === "cotizar" ? (
+            <QuotePanel
+              rates={rates}
+              error={rateError}
+              loading={loadingRates}
+              auto={auto}
+              onAuto={setAuto}
+              code={code}
+              onCode={setCode}
+              amount={amount}
+              onAmount={setAmount}
+              toMxn={toMxn}
+              onToMxn={setToMxn}
+              onRetry={() => {
+                setLoadingRates(true);
+                setTick((value) => value + 1);
+              }}
+            />
+          ) : null}
+          {tab === "cerca" ? <NearbyPanel rates={rates} /> : null}
+          {tab === "aeropuertos" ? <AirportPanel rates={rates} /> : null}
+          {tab === "interacciones" ? (
+            <Suspense
+              fallback={
+                <p
+                  role="status"
+                  className="rounded-card border border-line bg-surface px-4 py-6 text-sm text-muted"
+                >
+                  Preparando el laboratorio de interacción…
+                </p>
+              }
+            >
+              <MotionLab />
+            </Suspense>
+          ) : null}
+        </div>
       </main>
     </div>
   );

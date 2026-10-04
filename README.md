@@ -13,6 +13,27 @@ npm install
 npm run dev
 ```
 
+## Laboratorio de microinteracciones
+
+La pestaña **Microinteracciones** reúne cinco demostraciones listas para reutilizar: resortes,
+toggle líquido con filtro SVG, botón táctil 3D, acordeón elástico y escáner biométrico.
+Las exportaciones están agrupadas en `src/components/interactions`:
+
+```tsx
+import {
+  BiometricGlowCard,
+  ElasticSettingsAccordion,
+  LiquidMorphToggle,
+  MotionLab,
+  SpringMicrointeractions,
+  Tactile3DButton,
+} from "@/components/interactions";
+```
+
+`MotionLab` es el showcase completo; los componentes individuales se pueden componer por separado.
+El paquete `motion` aporta las transiciones de resorte y la hoja de estilos del barrel acompaña las
+exportaciones visuales.
+
 ## Despliegue en Vercel
 
 El proyecto usa Nitro con el preset de Vercel. El build de Vercel ejecuta
