@@ -36,26 +36,756 @@
   [role="tab"]:not(:disabled) {
     cursor: pointer;
   }
+  :root {
+    --mui-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --mui-ease-spring: cubic-bezier(0.34, 1.46, 0.58, 1);
+    --mui-edge-soft: #ddd6c9;
+    --mui-edge-primary: #084431;
+    --mui-edge-ink: #0a1712;
+    --mui-edge-accent: #6d3a1f;
+    --mui-glow-primary: rgba(14, 107, 84, 0.16);
+    --mui-glow-accent: rgba(141, 79, 43, 0.18);
+  }
 }
 
 @layer components {
-  .press {
-    transition: scale 150ms ease-out, background-color 180ms ease-out, color 180ms ease-out, border-color 180ms ease-out;
+  /* ---------- Botones: tecla táctil 3D con resorte ---------- */
+  .mui-button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    isolation: isolate;
+    border: 1px solid color-mix(in oklab, var(--color-ink) 12%, transparent);
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-weight: 600;
+    line-height: 1;
+    text-decoration: none;
+    box-shadow:
+      0 3px 0 var(--mui-edge-soft),
+      0 8px 16px rgba(20, 38, 31, 0.09);
+    transition:
+      box-shadow 200ms var(--mui-ease-out),
+      background-color 200ms var(--mui-ease-out),
+      color 200ms var(--mui-ease-out),
+      border-color 200ms var(--mui-ease-out);
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
-  .press:active:not(:disabled) {
-    scale: 0.96;
+  .mui-button::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 62%);
+    opacity: 0.55;
+    transition: opacity 220ms var(--mui-ease-out);
+    pointer-events: none;
   }
-  .rise {
-    animation: rise 420ms ease-out both;
+  .mui-button:hover:not(:disabled)::after {
+    opacity: 1;
+  }
+  .mui-button:active:not(:disabled) {
+    box-shadow:
+      0 1px 0 var(--mui-edge-soft),
+      0 2px 6px rgba(20, 38, 31, 0.1);
+  }
+  .mui-button:focus-visible {
+    outline: 3px solid rgba(14, 107, 84, 0.34);
+    outline-offset: 3px;
+  }
+  .mui-button:disabled {
+    opacity: 0.56;
+    cursor: not-allowed;
+    box-shadow: 0 2px 0 var(--mui-edge-soft);
+  }
+  .mui-button--primary {
+    --mui-edge-soft: var(--mui-edge-primary);
+    border-color: rgba(6, 66, 46, 0.26);
+    background: linear-gradient(180deg, #187b5e, var(--color-primary));
+    color: var(--color-on-primary);
+    box-shadow:
+      0 3px 0 var(--mui-edge-primary),
+      0 9px 18px rgba(8, 68, 49, 0.17);
+  }
+  .mui-button--primary:active:not(:disabled) {
+    box-shadow:
+      0 1px 0 var(--mui-edge-primary),
+      0 2px 6px rgba(8, 68, 49, 0.18);
+  }
+  .mui-button--ink {
+    --mui-edge-soft: var(--mui-edge-ink);
+    border-color: rgba(10, 23, 18, 0.34);
+    background: linear-gradient(180deg, #22382f, var(--color-ink));
+    color: var(--color-on-primary);
+    box-shadow:
+      0 3px 0 var(--mui-edge-ink),
+      0 9px 18px rgba(10, 23, 18, 0.18);
+  }
+  .mui-button--ink:active:not(:disabled) {
+    box-shadow:
+      0 1px 0 var(--mui-edge-ink),
+      0 2px 6px rgba(10, 23, 18, 0.2);
+  }
+  .mui-button--accent {
+    --mui-edge-soft: var(--mui-edge-accent);
+    border-color: rgba(109, 58, 31, 0.26);
+    background: linear-gradient(180deg, #a45f36, var(--color-accent));
+    color: var(--color-on-primary);
+    box-shadow:
+      0 3px 0 var(--mui-edge-accent),
+      0 9px 18px rgba(109, 58, 31, 0.16);
+  }
+  .mui-button--quiet {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+  }
+  .mui-button--quiet:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--color-primary-soft) 70%, transparent);
+    box-shadow: 0 2px 0 color-mix(in oklab, var(--color-line) 80%, transparent);
+  }
+  .mui-button--block {
+    width: 100%;
+  }
+  .mui-button__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .mui-button__icon {
+    display: inline-grid;
+    place-items: center;
+  }
+  .mui-button--sm {
+    height: 38px;
+    padding: 0 13px;
+    font-size: 13px;
+  }
+  .mui-button--md {
+    height: 44px;
+    padding: 0 16px;
+    font-size: 14px;
+  }
+  .mui-button--lg {
+    height: 50px;
+    padding: 0 20px;
+    font-size: 15px;
+  }
+  .mui-button.is-busy .mui-button__icon {
+    animation: mui-spin 1.15s linear infinite;
+  }
+
+  /* ---------- Pestañas: píldora que se desliza con resorte ---------- */
+  .mui-tablist {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--color-surface) 82%, transparent);
+    padding: 5px;
+    box-shadow: inset 0 1px 2px rgba(20, 38, 31, 0.05);
+    scrollbar-width: none;
+  }
+  .mui-tablist::-webkit-scrollbar {
+    display: none;
+  }
+  .mui-tab {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    isolation: isolate;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    padding: 0 16px;
+    color: var(--color-muted);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 180ms var(--mui-ease-out);
+  }
+  .mui-tab:hover {
+    color: var(--color-ink);
+  }
+  .mui-tab[aria-selected="true"] {
+    color: var(--color-on-primary);
+  }
+  .mui-tab:focus-visible {
+    outline: 3px solid rgba(14, 107, 84, 0.34);
+    outline-offset: 2px;
+  }
+  .mui-tab__icon {
+    display: inline-grid;
+    place-items: center;
+  }
+  .mui-tab__pill {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: linear-gradient(180deg, #187b5e, var(--color-primary));
+    box-shadow:
+      0 3px 0 var(--mui-edge-primary),
+      0 9px 18px rgba(8, 68, 49, 0.2);
+  }
+
+  /* ---------- Menús de selección (chips, filtros) con píldora líquida ---------- */
+  .mui-chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    isolation: isolate;
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    background: var(--color-surface);
+    padding: 0 14px;
+    color: var(--color-ink);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1;
+    text-align: center;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      color 180ms var(--mui-ease-out),
+      border-color 180ms var(--mui-ease-out),
+      background-color 180ms var(--mui-ease-out);
+  }
+  .mui-chip:hover {
+    border-color: color-mix(in oklab, var(--color-primary) 40%, var(--color-line));
+  }
+  .mui-chip:focus-visible {
+    outline: 3px solid rgba(14, 107, 84, 0.34);
+    outline-offset: 3px;
+  }
+  .mui-chip[aria-pressed="true"] {
+    border-color: transparent;
+    color: var(--color-on-primary);
+  }
+  .mui-chip--sm {
+    height: 38px;
+    font-size: 13px;
+    padding: 0 12px;
+  }
+  .mui-chip--md {
+    height: 44px;
+  }
+  .mui-chip--block {
+    width: 100%;
+    height: auto;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 12px;
+    border-radius: var(--radius-card);
+    padding: 13px 14px;
+    text-align: left;
+    line-height: 1.45;
+  }
+  .mui-chip__icon {
+    display: inline-grid;
+    flex: 0 0 auto;
+    place-items: center;
+  }
+  .mui-chip__label {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+  .mui-chip--enter {
+    animation: mui-rise 380ms var(--mui-ease-out) both;
+  }
+  .mui-chip__pill {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+  }
+  .mui-chip--ink[aria-pressed="true"] .mui-chip__pill {
+    background: linear-gradient(180deg, #22382f, var(--color-ink));
+    box-shadow:
+      0 3px 0 var(--mui-edge-ink),
+      0 9px 18px rgba(10, 23, 18, 0.16);
+  }
+  .mui-chip--primary[aria-pressed="true"] .mui-chip__pill {
+    background: linear-gradient(180deg, #187b5e, var(--color-primary));
+    box-shadow:
+      0 3px 0 var(--mui-edge-primary),
+      0 9px 18px rgba(8, 68, 49, 0.16);
+  }
+  .mui-chip--block[aria-pressed="true"] {
+    color: var(--color-ink);
+    border-color: color-mix(in oklab, var(--color-primary) 42%, var(--color-line));
+  }
+  .mui-chip--block[aria-pressed="true"] .mui-chip__pill {
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(120deg, var(--color-primary-soft), transparent 78%);
+    box-shadow: inset 0 0 0 1px rgba(14, 107, 84, 0.12);
+  }
+
+  /* ---------- Barras de estado: switch con mercurio líquido ---------- */
+  .mui-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    background: var(--color-surface);
+    padding: 0 6px 0 14px;
+    font-size: 14px;
+    color: var(--color-ink);
+  }
+  .mui-switch {
+    position: relative;
+    display: inline-block;
+    flex: 0 0 auto;
+    border: 0;
+    border-radius: 999px;
+    padding: 0;
+    background: transparent;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mui-switch:focus-visible {
+    outline: 3px solid rgba(14, 107, 84, 0.34);
+    outline-offset: 4px;
+  }
+  .mui-switch__track {
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(18, 50, 35, 0.1);
+    border-radius: inherit;
+    box-shadow: inset 0 1px 2px rgba(12, 42, 28, 0.14);
+  }
+  .mui-switch__goo {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    pointer-events: none;
+  }
+  .mui-switch__neck,
+  .mui-switch__orb {
+    position: absolute;
+    display: block;
+    background: var(--color-surface);
+  }
+  .mui-switch__neck {
+    top: 4px;
+    left: 0;
+    height: 12px;
+    border-radius: 999px;
+    transform-origin: left center;
+  }
+  .mui-switch__orb {
+    top: 0;
+    left: 0;
+    border: 1px solid rgba(27, 65, 43, 0.12);
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(13, 40, 27, 0.16);
+  }
+  .mui-switch__glint {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.85);
+    pointer-events: none;
+  }
+  .mui-switch__filters {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+  }
+
+  /* ---------- Barras de progreso (refresco de cotizaciones) ---------- */
+  .mui-bar-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .mui-bar {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 6px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--color-line) 88%, var(--color-ink) 4%);
+    box-shadow: inset 0 1px 2px rgba(12, 42, 28, 0.09);
+  }
+  .mui-bar__fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #0b5541, #1c9169);
+  }
+  .mui-bar--accent .mui-bar__fill {
+    background: linear-gradient(90deg, #7b4424, #c07a4d);
+  }
+  .mui-bar__shimmer {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 38%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+    pointer-events: none;
+  }
+  .mui-bar-row__label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--color-muted);
+    font-size: 12px;
+  }
+  .mui-live-dot {
+    position: relative;
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-primary);
+  }
+  .mui-live-dot::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+    border: 1px solid var(--color-primary);
+    animation: mui-pulse 2.1s var(--mui-ease-out) infinite;
+  }
+  .mui-live-dot.is-paused {
+    background: var(--color-muted);
+  }
+  .mui-live-dot.is-paused::after {
+    animation: none;
+    border-color: var(--color-muted);
+    opacity: 0.4;
+  }
+
+  /* ---------- Tarjetas con luz que sigue el cursor ---------- */
+  .mui-card {
+    position: relative;
+    display: block;
+    isolation: isolate;
+    overflow: hidden;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    box-shadow: 0 1px 2px rgba(20, 38, 31, 0.05);
+    transition:
+      border-color 240ms var(--mui-ease-out),
+      box-shadow 240ms var(--mui-ease-out);
+    animation: mui-rise 420ms var(--mui-ease-out) both;
+  }
+  .mui-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(240px 170px at var(--mui-mx, 50%) var(--mui-my, 0%), var(--mui-glow-primary), transparent 72%);
+    opacity: 0;
+    transition: opacity 300ms var(--mui-ease-out);
+    pointer-events: none;
+  }
+  .mui-card:hover::before,
+  .mui-card:focus-visible::before {
+    opacity: 1;
+  }
+  .mui-card:hover {
+    border-color: color-mix(in oklab, var(--color-primary) 34%, var(--color-line));
+    box-shadow: 0 12px 26px rgba(20, 38, 31, 0.09);
+  }
+  .mui-card.is-active {
+    border-color: var(--color-primary);
+  }
+  .mui-card--accent::before {
+    background: radial-gradient(240px 170px at var(--mui-mx, 50%) var(--mui-my, 0%), var(--mui-glow-accent), transparent 72%);
+  }
+  .mui-sweep {
+    position: absolute;
+    right: 0;
+    left: 0;
+    height: 42%;
+    background: linear-gradient(180deg, transparent, rgba(174, 232, 201, 0.55), transparent);
+    pointer-events: none;
+  }
+
+  /* ---------- Campos con respuesta elástica al foco ---------- */
+  .mui-field {
+    display: block;
+  }
+  .mui-field__label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--color-muted);
+    font-size: 13px;
+  }
+  .mui-field__box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--color-line);
+    border-radius: 16px;
+    background: var(--color-paper);
+    padding: 0 14px;
+    transition:
+      border-color 200ms var(--mui-ease-out),
+      box-shadow 200ms var(--mui-ease-out);
+  }
+  .mui-field__box.is-focused {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 4px rgba(14, 107, 84, 0.12);
+  }
+  .mui-field__icon {
+    display: inline-grid;
+    place-items: center;
+    color: var(--color-muted);
+  }
+  .mui-field__box.is-focused .mui-field__icon {
+    color: var(--color-primary);
+  }
+  .mui-field__input {
+    flex: 1 1 auto;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-ink);
+    font-size: 16px;
+    outline: none;
+    font-variant-numeric: tabular-nums;
+  }
+  .mui-field--sm .mui-field__box {
+    height: 44px;
+    border-radius: 12px;
+    font-size: 14px;
+  }
+
+  /* ---------- Secciones plegables (acordeón elástico) ---------- */
+  .mui-disclosure {
+    overflow: hidden;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    transition: border-color 220ms var(--mui-ease-out);
+  }
+  .mui-disclosure[data-open="true"] {
+    border-color: color-mix(in oklab, var(--color-primary) 34%, var(--color-line));
+  }
+  .mui-disclosure__trigger {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    padding: 14px 16px;
+    color: var(--color-ink);
+    text-align: left;
+  }
+  .mui-disclosure__trigger:focus-visible {
+    outline: 3px solid rgba(14, 107, 84, 0.34);
+    outline-offset: -3px;
+  }
+  .mui-disclosure__icon {
+    display: inline-grid;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid #d7e8dc;
+    border-radius: 10px;
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+  }
+  .mui-disclosure__copy {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+  .mui-disclosure__title {
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .mui-disclosure__hint {
+    color: var(--color-muted);
+    font-size: 12px;
+  }
+  .mui-disclosure__chevron {
+    margin-left: auto;
+    display: inline-grid;
+    place-items: center;
+    color: var(--color-muted);
+  }
+  /* ---------- Avisos con resorte ---------- */
+  .mui-notice-zone {
+    display: grid;
+  }
+  .mui-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    border: 1px solid var(--color-line);
+    border-left-width: 3px;
+    border-radius: 18px;
+    background: var(--color-surface);
+    padding: 11px 12px;
+    font-size: 14px;
+    box-shadow: 0 6px 16px rgba(20, 38, 31, 0.05);
+  }
+  .mui-notice--danger {
+    border-left-color: var(--color-accent);
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+  }
+  .mui-notice--success {
+    border-left-color: var(--color-primary);
+    background: var(--color-primary-soft);
+    color: #0b5541;
+  }
+  .mui-notice--info {
+    border-left-color: color-mix(in oklab, var(--color-primary) 55%, var(--color-line));
+  }
+  .mui-notice__icon {
+    display: inline-grid;
+    place-items: center;
+    padding-top: 1px;
+  }
+  .mui-notice__copy {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    color: var(--color-ink);
+  }
+  .mui-notice__copy strong {
+    font-size: 14px;
+  }
+  .mui-notice__copy > span {
+    color: var(--color-muted);
+    font-size: 13px;
+  }
+  .mui-notice__close {
+    display: inline-grid;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    padding: 4px;
+    color: var(--color-muted);
+  }
+  .mui-notice__close:hover {
+    color: var(--color-ink);
+    background: rgba(20, 38, 31, 0.06);
+  }
+  .mui-notice__restore {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    justify-self: start;
+    border: 1px dashed var(--color-line);
+    border-radius: 999px;
+    background: transparent;
+    padding: 7px 12px;
+    color: var(--color-muted);
+    font-size: 12px;
+  }
+  .mui-notice__restore:hover {
+    color: var(--color-ink);
+    border-color: color-mix(in oklab, var(--color-primary) 40%, var(--color-line));
+  }
+  .mui-disclosure__panel {
+    overflow: hidden;
+  }
+  .mui-disclosure__panel-inner {
+    padding: 0 16px 15px;
+  }
+  .mui-disclosure--accent .mui-disclosure__icon {
+    border-color: #e7cdb9;
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+  }
+  .mui-disclosure--accent[data-open="true"] {
+    border-color: color-mix(in oklab, var(--color-accent) 36%, var(--color-line));
   }
 }
 
-@keyframes rise {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: none; }
+@keyframes mui-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes mui-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes mui-pulse {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.9;
+  }
+  70% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rise { animation: none; }
-  .press { transition: none; }
+  .mui-card {
+    animation: none;
+  }
+  .mui-chip--enter {
+    animation: none;
+  }
+  .mui-button,
+  .mui-tab,
+  .mui-chip,
+  .mui-card {
+    transition-duration: 1ms;
+  }
+  .mui-button.is-busy .mui-button__icon {
+    animation-duration: 2.4s;
+  }
+  .mui-live-dot::after {
+    animation: none;
+    opacity: 0.35;
+    transform: none;
+  }
+  .mui-bar__shimmer {
+    display: none;
+  }
 }

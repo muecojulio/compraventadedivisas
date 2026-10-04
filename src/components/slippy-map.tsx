@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "motion/react";
+import { Minus, Plus } from "lucide-react";
 import type { Place } from "@/lib/domain";
+import { MotionBar, MotionButton } from "@/components/motion-ui";
+import { BOUNCY_SPRING, SOFT_SPRING, cx } from "@/components/motion-ui/springs";
+import { useMotionOff, useSpringTransition } from "@/components/motion-ui/use-spring";
 import { metersPerPixel, project, unproject } from "@/lib/geo";
 
 type Props = {
@@ -8,13 +13,17 @@ type Props = {
   selectedId: string | null;
   onSelect: (id: string) => void;
   radiusM: number;
+  loading?: boolean;
 };
 
-export function SlippyMap({ center, places, selectedId, onSelect, radiusM }: Props) {
+export function SlippyMap({ center, places, selectedId, onSelect, radiusM, loading = false }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number; y: number; px: { x: number; y: number }; z: number } | null>(null);
   const [size, setSize] = useState({ w: 640, h: 320 });
   const [view, setView] = useState({ lat: center.lat, lon: center.lon, z: 13 });
+  const reduced = useMotionOff();
+  const ringTransition = useSpringTransition(SOFT_SPRING);
+  const markerTransition = useSpringTransition(BOUNCY_SPRING);
 
   useEffect(() => {
     setView((v) => ({ ...v, lat: center.lat, lon: center.lon }));
@@ -57,6 +66,7 @@ export function SlippyMap({ center, places, selectedId, onSelect, radiusM }: Pro
 
   const mpp = metersPerPixel(view.lat, view.z);
   const radiusPx = radiusM / mpp;
+  const viewKey = `${center.lat.toFixed(4)}-${center.lon.toFixed(4)}-${view.z}`;
 
   function markerStyle(place: Place): { left: number; top: number } {
     const p = project(place.lat, place.lon, view.z);
@@ -99,7 +109,8 @@ export function SlippyMap({ center, places, selectedId, onSelect, radiusM }: Pro
           style={{ left: tile.left, top: tile.top }}
         />
       ))}
-      <div
+      <motion.div
+        key={viewKey}
         className="pointer-events-none absolute rounded-full border-2 border-primary/70 bg-primary/10"
         style={{
           width: radiusPx * 2,
@@ -107,6 +118,9 @@ export function SlippyMap({ center, places, selectedId, onSelect, radiusM }: Pro
           left: size.w / 2 - radiusPx,
           top: size.h / 2 - radiusPx,
         }}
+        initial={reduced ? false : { scale: 0.82, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={ringTransition}
       />
       <span className="pointer-events-none absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface bg-ink" />
       {places.map((place) => {
@@ -114,36 +128,56 @@ export function SlippyMap({ center, places, selectedId, onSelect, radiusM }: Pro
         const active = place.id === selectedId;
         if (pos.left < -20 || pos.top < -20 || pos.left > size.w + 20 || pos.top > size.h + 20) return null;
         return (
-          <button
+          <motion.button
             key={place.id}
             type="button"
             aria-label={place.name}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={() => onSelect(place.id)}
-            className={
-              "press absolute z-10 h-9 min-w-9 -translate-x-1/2 -translate-y-full rounded-full border px-2 text-xs font-semibold shadow-sm " +
-              (place.kind === "azteca"
+            className={cx(
+              "mui-marker absolute z-10 h-9 min-w-9 -translate-x-1/2 -translate-y-full rounded-full border px-2 text-xs font-semibold shadow-sm",
+              place.kind === "azteca"
                 ? "border-accent bg-accent text-on-primary"
-                : "border-primary bg-primary text-on-primary") +
-              (active ? " ring-2 ring-ink ring-offset-2 ring-offset-surface" : "")
-            }
+                : "border-primary bg-primary text-on-primary",
+              active && "is-active ring-2 ring-ink ring-offset-2 ring-offset-surface",
+            )}
             style={{ left: pos.left, top: pos.top }}
+            whileHover={reduced ? undefined : { y: -3, scale: 1.06 }}
+            whileTap={reduced ? undefined : { scale: 0.9 }}
+            transition={markerTransition}
           >
             {place.kind === "azteca" ? "Az" : "Cc"}
-          </button>
+          </motion.button>
         );
       })}
       <div
         className="absolute top-3 right-3 flex flex-col gap-2"
         onPointerDown={(event) => event.stopPropagation()}
       >
-        <button type="button" className="press h-11 w-11 rounded-full border border-line bg-surface text-lg text-ink" onClick={() => setView((v) => ({ ...v, z: Math.min(17, v.z + 1) }))} aria-label="Acercar">
-          +
-        </button>
-        <button type="button" className="press h-11 w-11 rounded-full border border-line bg-surface text-lg text-ink" onClick={() => setView((v) => ({ ...v, z: Math.max(11, v.z - 1) }))} aria-label="Alejar">
-          −
-        </button>
+        <MotionButton
+          tone="outline"
+          size="md"
+          className="w-11 p-0"
+          aria-label="Acercar el mapa"
+          leading={<Plus className="size-4" aria-hidden="true" />}
+          onClick={() => setView((v) => ({ ...v, z: Math.min(17, v.z + 1) }))}
+        />
+        <MotionButton
+          tone="outline"
+          size="md"
+          className="w-11 p-0"
+          aria-label="Alejar el mapa"
+          leading={<Minus className="size-4" aria-hidden="true" />}
+          onClick={() => setView((v) => ({ ...v, z: Math.max(11, v.z - 1) }))}
+        />
       </div>
+      {loading ? (
+        <div className="absolute inset-x-3 top-3 z-20">
+          <div className="rounded-full bg-surface/92 px-3 py-2 shadow-sm">
+            <MotionBar busy value={null} label="Cargando locales cercanos" tone="accent" />
+          </div>
+        </div>
+      ) : null}
       <p className="absolute bottom-2 left-2 rounded-full bg-surface/90 px-2 py-1 text-xs text-muted">
         © OpenStreetMap
       </p>

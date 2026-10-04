@@ -1,8 +1,20 @@
-import { lazy, Suspense, useEffect, useState } from "react";
-import { Link } from "@tanstack/react-router";
-import { RefreshCw, Shield } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeftRight, Calculator, RefreshCw, Shield } from "lucide-react";
 import { AirportPanel, NearbyPanel } from "@/components/places-board";
 import { Flag } from "@/components/flags";
+import {
+  GlowCard,
+  LiquidSwitch,
+  LiveDot,
+  MotionBar,
+  MotionButton,
+  MotionChip,
+  MotionDisclosure,
+  MotionField,
+  MotionRouterLink,
+  MotionTabs,
+  type MotionTabItem,
+} from "@/components/motion-ui";
 import {
   CURRENCY_META,
   aztecaPair,
@@ -11,18 +23,16 @@ import {
   type RatesResponse,
 } from "@/lib/domain";
 
-type Tab = "cotizar" | "cerca" | "aeropuertos" | "interacciones";
+type Tab = "cotizar" | "cerca" | "aeropuertos";
 
-const TABS: Array<{ id: Tab; label: string }> = [
+const TABS: Array<MotionTabItem<Tab>> = [
   { id: "cotizar", label: "Cotizar" },
   { id: "cerca", label: "Cerca de mí" },
   { id: "aeropuertos", label: "Aeropuertos" },
-  { id: "interacciones", label: "Microinteracciones" },
 ];
 
-const MotionLab = lazy(() =>
-  import("@/components/interactions").then((module) => ({ default: module.MotionLab })),
-);
+const AUTO_REFRESH_MS = 60_000;
+const CURRENCY_CODES: Array<CurrencyCode> = ["USD", "JPY", "CAD"];
 
 export function ExchangeApp() {
   const [tab, setTab] = useState<Tab>("cotizar");
@@ -31,6 +41,8 @@ export function ExchangeApp() {
   const [loadingRates, setLoadingRates] = useState(true);
   const [auto, setAuto] = useState(true);
   const [tick, setTick] = useState(0);
+  const [refreshedAt, setRefreshedAt] = useState<number | null>(null);
+  const [elapsed, setElapsed] = useState(0);
   const [code, setCode] = useState<CurrencyCode>("USD");
   const [amount, setAmount] = useState("100");
   const [toMxn, setToMxn] = useState(true);
@@ -45,6 +57,8 @@ export function ExchangeApp() {
         if (!stop) {
           setRates(body);
           setRateError(null);
+          setRefreshedAt(Date.now());
+          setElapsed(0);
         }
       } catch (error) {
         if (!stop) setRateError(error instanceof Error ? error.message : "Error");
@@ -54,77 +68,58 @@ export function ExchangeApp() {
     };
     void pull();
     if (!auto) return () => { stop = true; };
-    const timer = window.setInterval(() => void pull(), 60_000);
+    const timer = window.setInterval(() => void pull(), AUTO_REFRESH_MS);
     return () => {
       stop = true;
       window.clearInterval(timer);
     };
   }, [auto, tick]);
 
+  // Reloj de la barra: solo corre en el cliente y solo con el refresco en vivo.
+  useEffect(() => {
+    if (!auto) {
+      setElapsed(0);
+      return;
+    }
+    const timer = window.setInterval(() => {
+      if (refreshedAt === null) return;
+      setElapsed(Math.min(AUTO_REFRESH_MS, Date.now() - refreshedAt));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [auto, refreshedAt]);
+
+  const progress = refreshedAt === null ? null : Math.min(1, elapsed / AUTO_REFRESH_MS);
+
   return (
     <div className="min-h-screen bg-paper text-ink">
       <header className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4">
           <div>
-            <p className="text-xs font-semibold tracking-widest text-primary uppercase">Pesos mexicanos</p>
+            <p className="flex items-center gap-2 text-xs font-semibold tracking-widest text-primary uppercase">
+              <LiveDot on={auto && !loadingRates} />
+              Pesos mexicanos
+            </p>
             <h1 className="font-display text-3xl leading-none text-balance text-ink">CompraVenta de divisas</h1>
           </div>
-          <Link
-            to="/privacidad"
-            className="press inline-flex h-11 items-center gap-2 rounded-full border border-line px-4 text-sm text-ink"
-          >
-            <Shield className="size-4" aria-hidden="true" />
+          <MotionRouterLink to="/privacidad" tone="outline" size="md" leading={<Shield className="size-4" aria-hidden="true" />}>
             Privacidad
-          </Link>
+          </MotionRouterLink>
         </div>
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-5 pb-16">
-        <div className="mb-5 flex gap-2 overflow-x-auto" role="tablist" aria-label="Secciones">
-          {TABS.map((item) => {
-            const on = tab === item.id;
-            return (
-              <button
-                key={item.id}
-                id={`tab-${item.id}`}
-                type="button"
-                role="tab"
-                aria-selected={on}
-                aria-controls="panel-main"
-                tabIndex={on ? 0 : -1}
-                onClick={() => setTab(item.id)}
-                onKeyDown={(event) => {
-                  const currentIndex = TABS.findIndex((tabItem) => tabItem.id === item.id);
-                  const direction =
-                    event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
-                  const nextIndex =
-                    event.key === "Home"
-                      ? 0
-                      : event.key === "End"
-                        ? TABS.length - 1
-                        : (currentIndex + direction + TABS.length) % TABS.length;
-                  if (direction === 0 && event.key !== "Home" && event.key !== "End") return;
-                  event.preventDefault();
-                  const nextTab = TABS[nextIndex];
-                  if (!nextTab) return;
-                  setTab(nextTab.id);
-                  const tabButtons = event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
-                    "[role=tab]",
-                  );
-                  tabButtons?.[nextIndex]?.focus();
-                }}
-                className={
-                  "press h-11 shrink-0 rounded-full px-4 text-sm font-semibold transition-colors duration-200 " +
-                  (on ? "bg-primary text-on-primary" : "border border-line bg-surface text-ink")
-                }
-              >
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
+        <MotionTabs
+          items={TABS}
+          value={tab}
+          onChange={setTab}
+          ariaLabel="Secciones"
+          idPrefix="main"
+          panelId="panel-main"
+          layoutId="main-tab-pill"
+          className="mb-5"
+        />
 
-        <div id="panel-main" role="tabpanel" aria-labelledby={`tab-${tab}`} tabIndex={0}>
+        <div id="panel-main" role="tabpanel" aria-labelledby={`main-tab-${tab}`} tabIndex={0}>
           {tab === "cotizar" ? (
             <QuotePanel
               rates={rates}
@@ -132,6 +127,8 @@ export function ExchangeApp() {
               loading={loadingRates}
               auto={auto}
               onAuto={setAuto}
+              progress={progress}
+              refreshedAt={refreshedAt}
               code={code}
               onCode={setCode}
               amount={amount}
@@ -146,20 +143,6 @@ export function ExchangeApp() {
           ) : null}
           {tab === "cerca" ? <NearbyPanel rates={rates} /> : null}
           {tab === "aeropuertos" ? <AirportPanel rates={rates} /> : null}
-          {tab === "interacciones" ? (
-            <Suspense
-              fallback={
-                <p
-                  role="status"
-                  className="rounded-card border border-line bg-surface px-4 py-6 text-sm text-muted"
-                >
-                  Preparando el laboratorio de interacción…
-                </p>
-              }
-            >
-              <MotionLab />
-            </Suspense>
-          ) : null}
         </div>
       </main>
     </div>
@@ -172,6 +155,8 @@ function QuotePanel(props: {
   loading: boolean;
   auto: boolean;
   onAuto: (value: boolean) => void;
+  progress: number | null;
+  refreshedAt: number | null;
   code: CurrencyCode;
   onCode: (code: CurrencyCode) => void;
   amount: string;
@@ -187,6 +172,12 @@ function QuotePanel(props: {
   const numeric = Number(props.amount.replace(",", "."));
   const valid = Number.isFinite(numeric) && numeric >= 0;
   const result = !selected || !valid ? null : props.toMxn ? numeric * selected.mxn : numeric / selected.mxn;
+  const refreshedLabel =
+    props.refreshedAt === null
+      ? props.loading
+        ? "consultando el mercado"
+        : "sin lectura todavía"
+      : new Date(props.refreshedAt).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
 
   return (
     <section className="space-y-4">
@@ -194,27 +185,37 @@ function QuotePanel(props: {
         <p className="max-w-xl text-pretty text-muted">
           Dólar, yen y dólar canadiense contra el peso. El mercado se refresca solo; Banco Azteca muestra la ventanilla publicada.
         </p>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={props.auto}
-          onClick={() => props.onAuto(!props.auto)}
-          className="press inline-flex h-11 items-center gap-3 rounded-full border border-line bg-surface pr-2 pl-4 text-sm"
-        >
-          <RefreshCw className="size-4 text-primary" aria-hidden="true" />
-          En vivo
-          <span className={"relative h-6 w-11 rounded-full transition-colors duration-200 " + (props.auto ? "bg-primary" : "bg-line")}>
-            <span
-              className={
-                "absolute top-0.5 h-5 w-5 rounded-full bg-surface transition-transform duration-200 " +
-                (props.auto ? "translate-x-5" : "translate-x-0.5")
-              }
-            />
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="mui-pill h-11">
+            <RefreshCw className="size-4 text-primary" aria-hidden="true" />
+            En vivo
+            <LiquidSwitch checked={props.auto} onChange={props.onAuto} label="Actualización en vivo cada minuto" />
           </span>
-        </button>
-        <button type="button" onClick={props.onRetry} className="press h-11 rounded-full border border-line bg-surface px-4 text-sm font-semibold">
-          Actualizar
-        </button>
+          <MotionButton
+            tone="outline"
+            size="md"
+            leading={<RefreshCw className="size-4" aria-hidden="true" />}
+            busy={props.loading}
+            onClick={props.onRetry}
+          >
+            Actualizar
+          </MotionButton>
+        </div>
+      </div>
+
+      <div className="rounded-card border border-line bg-surface px-4 py-3">
+        <MotionBar
+          value={props.auto ? props.progress : 0}
+          busy={props.loading}
+          label="Ciclo de refresco del tipo de cambio"
+          tone={props.error ? "accent" : "primary"}
+          hint={
+            <span>
+              <LiveDot on={props.auto && !props.loading} />
+              {props.auto ? `Siguiente lectura: ${refreshedLabel}` : `Refresco en pausa · ${refreshedLabel}`}
+            </span>
+          }
+        />
       </div>
 
       {props.error ? (
@@ -222,20 +223,21 @@ function QuotePanel(props: {
       ) : null}
 
       <div className="grid gap-3 md:grid-cols-3">
-        {(props.rates?.currencies ?? ["USD", "JPY", "CAD"].map((code) => ({
-          code: code as CurrencyCode,
-          name: CURRENCY_META[code as CurrencyCode].name,
-          country: CURRENCY_META[code as CurrencyCode].country,
+        {(props.rates?.currencies ?? CURRENCY_CODES.map((code) => ({
+          code,
+          name: CURRENCY_META[code].name,
+          country: CURRENCY_META[code].country,
           mxn: 0,
         }))).map((item, index) => {
           const board = usd ? aztecaPair(item.code, item.mxn, usd.mxn, props.rates?.azteca ?? null) : null;
           const hero = item.code === "JPY" ? item.mxn * 100 : item.mxn;
           const unit = item.code === "JPY" ? "100 JPY" : `1 ${item.code}`;
           return (
-            <article
+            <GlowCard
               key={item.code}
-              className="rise rounded-card border border-line bg-surface p-4 shadow-sm"
-              style={{ animationDelay: `${index * 80}ms` }}
+              className="p-4"
+              enterDelay={index * 80}
+              sweepKey={props.refreshedAt ? Math.round(props.refreshedAt / 1000) : 0}
             >
               <div className="mb-3 flex items-center gap-3">
                 <Flag code={item.code} className="h-8 w-12 rounded-md border border-line" />
@@ -245,7 +247,7 @@ function QuotePanel(props: {
                 </div>
               </div>
               <p className="font-display text-4xl tabular-nums text-ink">
-                {props.loading || !props.rates ? "…" : formatMxn(hero, item.code === "JPY" ? 2 : 2)}
+                {props.loading || !props.rates ? "…" : formatMxn(hero, 2)}
               </p>
               <p className="mt-1 text-sm text-muted">por {unit} en el mercado</p>
               {item.code === "JPY" && props.rates ? (
@@ -264,45 +266,44 @@ function QuotePanel(props: {
                   accent
                 />
               </div>
-            </article>
+            </GlowCard>
           );
         })}
       </div>
 
       <section className="rounded-card border border-line bg-surface p-4">
-        <div className="mb-3 flex flex-wrap gap-2">
-          {(["USD", "JPY", "CAD"] as const).map((item) => (
-            <button
+        <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="Elegir divisa">
+          {CURRENCY_CODES.map((item) => (
+            <MotionChip
               key={item}
-              type="button"
+              selected={props.code === item}
+              layoutId="currency-chip-pill"
+              tone="ink"
+              size="md"
+              leading={<Flag code={item} className="h-4 w-6 rounded-sm" />}
               onClick={() => props.onCode(item)}
-              className={
-                "press inline-flex h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold " +
-                (props.code === item ? "bg-ink text-on-primary" : "border border-line bg-paper text-ink")
-              }
             >
-              <Flag code={item} className="h-4 w-6 rounded-sm" />
               {item}
-            </button>
+            </MotionChip>
           ))}
         </div>
-        <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-          <label className="block text-sm">
-            <span className="mb-1 block text-muted">{props.toMxn ? `Cantidad en ${props.code}` : "Cantidad en MXN"}</span>
-            <input
-              inputMode="decimal"
-              value={props.amount}
-              onChange={(event) => props.onAmount(event.target.value)}
-              className="h-12 w-full rounded-2xl border border-line bg-paper px-4 text-lg tabular-nums outline-none focus:border-primary"
-            />
-          </label>
-          <button
-            type="button"
+        <div className="grid items-end gap-3 md:grid-cols-[1fr_auto]">
+          <MotionField
+            label={props.toMxn ? `Cantidad en ${props.code}` : "Cantidad en MXN"}
+            value={props.amount}
+            onValueChange={props.onAmount}
+            inputMode="decimal"
+            icon={<Calculator className="size-4" aria-hidden="true" />}
+            placeholder="0.00"
+          />
+          <MotionButton
+            tone="outline"
+            size="lg"
+            leading={<ArrowLeftRight className="size-4" aria-hidden="true" />}
             onClick={() => props.onToMxn(!props.toMxn)}
-            className="press h-12 self-end rounded-full border border-line px-4 text-sm font-semibold"
           >
             {props.toMxn ? "Ver divisa" : "Ver pesos"}
-          </button>
+          </MotionButton>
         </div>
         <p className="mt-4 font-display text-3xl tabular-nums">
           {result == null ? "—" : props.toMxn ? formatMxn(result) : `${result.toLocaleString("es-MX", { maximumFractionDigits: 2 })} ${props.code}`}
@@ -330,11 +331,15 @@ function QuotePanel(props: {
         ) : null}
       </section>
 
-      <aside className="rounded-card border border-line bg-primary-soft p-4 text-sm text-pretty text-ink">
-        <p className="font-semibold">De dónde sale el precio</p>
-        <p className="mt-1">{props.rates?.aztecaNote}</p>
+      <MotionDisclosure
+        icon={<Shield className="size-4" aria-hidden="true" />}
+        title="De dónde sale el precio"
+        hint="Fuentes del tablero y del mercado"
+        defaultOpen
+      >
+        <p className="text-sm text-pretty">{props.rates?.aztecaNote}</p>
         {props.rates?.azteca ? (
-          <p className="mt-2">
+          <p className="mt-2 text-sm">
             Dólar Azteca: compra {formatMxn(props.rates.azteca.usdCompra)} · venta {formatMxn(props.rates.azteca.usdVenta)}
             {props.rates.azteca.asOf ? ` · fecha ${props.rates.azteca.asOf}` : ""}.{" "}
             <a className="underline" href={props.rates.azteca.sourceUrl} target="_blank" rel="noreferrer">
@@ -342,11 +347,11 @@ function QuotePanel(props: {
             </a>
           </p>
         ) : null}
-        <p className="mt-2 text-muted">
+        <p className="mt-2 text-sm text-muted">
           Mercado: {props.rates?.marketSource ?? "cargando"}
           {props.rates?.marketAsOf ? ` · ${new Date(props.rates.marketAsOf).toLocaleString("es-MX")}` : ""}. Las casas de cambio no publican un tablero único; compáralo en la pestaña Cerca de mí.
         </p>
-      </aside>
+      </MotionDisclosure>
     </section>
   );
 }
@@ -360,4 +365,3 @@ function BoardCell({ label, value, hint, accent = false }: { label: string; valu
     </div>
   );
 }
-

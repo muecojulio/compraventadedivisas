@@ -13,26 +13,41 @@ npm install
 npm run dev
 ```
 
-## Laboratorio de microinteracciones
+## Movimiento de la interfaz
 
-La pestaña **Microinteracciones** reúne cinco demostraciones listas para reutilizar: resortes,
-toggle líquido con filtro SVG, botón táctil 3D, acordeón elástico y escáner biométrico.
-Las exportaciones están agrupadas en `src/components/interactions`:
+La antigua pestaña **Microinteracciones** ya no existe: sus cinco patrones se
+aplicaron directamente a los controles reales de la app. El kit vive en
+`src/components/motion-ui` y no añade páginas nuevas:
+
+| Patrón del laboratorio | Dónde se usa ahora |
+| --- | --- |
+| Física de resorte (`motion/react`) | Pestañas, chips de divisa/país/filtros, avisos y campos |
+| Botón táctil 3D | Todos los botones y enlaces de acción (`MotionButton`, `MotionLink`, `MotionRouterLink`) |
+| Toggle líquido con filtro SVG | Barras de estado «En vivo» y «Solo zona de aeropuerto» (`LiquidSwitch`) |
+| Acordeón elástico | Secciones plegables: «De dónde sale el precio» y «Anota el tablero que viste» |
+| Luz que sigue el cursor y barrido de confirmación | Tarjetas de divisas y de locales (`GlowCard`) |
 
 ```tsx
 import {
-  BiometricGlowCard,
-  ElasticSettingsAccordion,
-  LiquidMorphToggle,
-  MotionLab,
-  SpringMicrointeractions,
-  Tactile3DButton,
-} from "@/components/interactions";
+  GlowCard,
+  LiquidSwitch,
+  MotionBar,
+  MotionButton,
+  MotionChip,
+  MotionDisclosure,
+  MotionField,
+  MotionNotice,
+  MotionTabs,
+} from "@/components/motion-ui";
 ```
 
-`MotionLab` es el showcase completo; los componentes individuales se pueden componer por separado.
-El paquete `motion` aporta las transiciones de resorte y la hoja de estilos del barrel acompaña las
-exportaciones visuales.
+Extras del kit: `MotionTabs` desliza una píldora compartida entre pestañas con
+teclado completo (izquierda/derecha, `Home`, `End`), `MotionChip` transfiere su
+selección de un menú a otro con el mismo truco de `layoutId`, y `MotionBar`
+muestra el ciclo de refresco del tipo de cambio (y el estado de carga del mapa).
+
+Todo el movimiento respeta `prefers-reduced-motion`: los resortes se apagan y
+queda el estado final, sin animaciones.
 
 ## Despliegue en Vercel
 
