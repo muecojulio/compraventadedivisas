@@ -6,6 +6,10 @@ export type CurrencyQuote = {
   country: string;
   /** Pesos mexicanos por 1 unidad de la divisa. */
   mxn: number;
+  /** Cierres intradía, del más antiguo al más reciente. Vacío si no hay serie. */
+  dayCloses: number[];
+  /** Variación del día en porcentaje, si la serie es creíble. */
+  dayChangePct: number | null;
 };
 
 export type AztecaBoard = {
@@ -115,6 +119,16 @@ export function formatMxn(value: number, digits = 2): string {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   }).format(value);
+}
+
+export function formatChange(pct: number): string {
+  const abs = Math.abs(pct).toLocaleString("es-MX", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  if (pct > 0) return `+${abs}%`;
+  if (pct < 0) return `−${abs}%`;
+  return `${abs}%`;
 }
 
 export function formatDistance(meters: number): string {

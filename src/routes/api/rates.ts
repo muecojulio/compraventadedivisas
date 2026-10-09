@@ -1,20 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getRates } from "@/lib/fx.server";
+import { apiJson, enforceLimit, upstreamFailure } from "@/lib/guard.server";
 
-async function handle(): Promise<Response> {
+async function handle({ request }: { request: Request }): Promise<Response> {
+  const limited = enforceLimit(request, "rates");
+  if (limited) return limited;
   try {
-    const data = await getRates();
-    return Response.json(data, {
-      headers: {
-        "cache-control": "public, max-age=30",
-        "x-content-type-options": "nosniff",
-      },
-    });
-  } catch {
-    return Response.json(
-      { error: "No se pudieron leer las cotizaciones en este momento." },
-      { status: 502, headers: { "cache-control": "no-store" } },
-    );
+    return apiJson(await getRates(), 200, "public, max-age=30");
+  } catch (error) {
+    return upstreamFailure(error, "No se pudieron leer las cotizaciones en este momento.");
   }
 }
 

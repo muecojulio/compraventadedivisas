@@ -58,8 +58,8 @@ export function SlippyMap({
     const y1 = Math.floor((top + size.h) / 256);
     const max = 2 ** view.z;
     const list: Array<{ key: string; href: string; left: number; top: number }> = [];
-    for (let x = x0; x <= x1; x += 1) {
-      for (let y = y0; y <= y1; y += 1) {
+    for (let x = x0; x <= x1 && list.length < 48; x += 1) {
+      for (let y = y0; y <= y1 && list.length < 48; y += 1) {
         if (y < 0 || y >= max) continue;
         const wrapped = ((x % max) + max) % max;
         list.push({
@@ -119,6 +119,7 @@ export function SlippyMap({
           src={tile.href}
           alt=""
           draggable={false}
+          referrerPolicy="no-referrer"
           className="pointer-events-none absolute h-64 w-64 max-w-none"
           style={{ left: tile.left, top: tile.top }}
         />
@@ -136,7 +137,7 @@ export function SlippyMap({
         animate={{ scale: 1, opacity: 1 }}
         transition={ringTransition}
       />
-      <span className="pointer-events-none absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface bg-ink" />
+      <span className="map-origin pointer-events-none absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface bg-ink" />
       {places.map((place) => {
         const pos = markerStyle(place);
         const active = place.id === selectedId;

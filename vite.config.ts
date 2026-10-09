@@ -11,6 +11,8 @@ import { grokPwaPlugin } from "./scripts/grok-pwa-plugin.mjs";
 // @ts-expect-error JS plugin alongside the TS vite config
 import { appEnvPlugin } from "./scripts/app-env-plugin.mjs";
 import { isMigrationFile } from "./scripts/migration-plan.mjs";
+// @ts-expect-error JS module alongside the TS vite config
+import { securityHeaders } from "./scripts/security-headers.mjs";
 
 /** Whether the migration tree contains a SQL file for the PGLite bootstrap. */
 function hasGlobbedMigrations(root: string): boolean {
@@ -69,6 +71,31 @@ function pgliteBootstrapPlugin(): Plugin {
  * and returns the 302 / completion HTML. Deployed apps do not use the popup
  * (full-page OAuth redirect), so `apply: "serve"` is enough.
  */
+/** Same headers as server/middleware/security-headers.ts, so dev matches deploy. */
+function securityHeadersPlugin(): Plugin {
+  return {
+    name: "app-builder:security-headers",
+    configureServer(server) {
+      server.middlewares.use((_req, res, next) => {
+        const headers = securityHeaders({ dev: true });
+        for (const [key, value] of Object.entries(headers)) {
+          if (!res.getHeader(key)) res.setHeader(key, value);
+        }
+        next();
+      });
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use((_req, res, next) => {
+        const headers = securityHeaders({ dev: false });
+        for (const [key, value] of Object.entries(headers)) {
+          if (!res.getHeader(key)) res.setHeader(key, value);
+        }
+        next();
+      });
+    },
+  };
+}
+
 function authPopupPlugin(): Plugin {
   return {
     name: "app-builder:auth-popup",
@@ -172,6 +199,7 @@ export default defineConfig(({ command, isPreview }) => ({
   resolve: { tsconfigPaths: true },
   plugins: [
     pgliteBootstrapPlugin(),
+    securityHeadersPlugin(),
     // Before tanstackStart so /auth/popup never falls through to the SPA.
     authPopupPlugin(),
     // Dev-only /__app-env, read by scripts/check-auth-invariant.mjs.
