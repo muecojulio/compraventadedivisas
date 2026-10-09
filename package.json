@@ -20,12 +20,14 @@
     "preview:stop": "node scripts/preview.mjs stop",
     "typecheck": "tsc --noEmit",
     "check:auth": "node scripts/check-auth-invariant.mjs",
-    "test": "node --test 'scripts/**/*.test.mjs' && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/app-data/readiness-schedule.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/session-context.test.ts src/lib/auth/short-expiry.test.ts src/lib/auth/resolve-user-email.test.ts src/lib/auth/resolve-user-id.test.ts src/lib/auth/session-check.test.ts src/lib/data/rules.test.ts src/lib/data/sync-state.test.ts src/lib/data/tenant-rules.test.ts src/lib/data/tenant-sync.test.ts src/lib/data/tenant-validators.test.ts src/lib/data/validation.test.ts src/lib/db/db.test.ts src/lib/geo/country-select.test.ts src/lib/instrumentation/object-diff.test.ts src/lib/status/availability.test.ts src/lib/status/maintenance-mode.test.ts src/lib/status/revenue-status.test.ts src/lib/status/worker-status.test.ts src/lib/status/tenant-status.test.ts src/lib/storage/blob.test.ts src/lib/storage/file-system.test.ts src/lib/ttl/ttl.test.ts src/lib/windows/response-signature.test.ts src/lib/tenant-snapshot/tenant-snapshot.test.ts src/lib/tenant-balance/tenant-balance.test.ts src/lib/project-activities/project-activities.test.ts src/lib/webhooks/webhook-delivery.test.ts",
+    "test": "node --test 'scripts/**/*.test.mjs' && node --experimental-strip-types --test src/lib/security.test.ts src/lib/fx-parse.test.ts src/lib/app-data/app-data.test.ts src/lib/app-data/readiness-schedule.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",
+    "@fontsource-variable/fraunces": "^5.3.0",
+    "@fontsource-variable/outfit": "^5.3.0",
     "@hookform/resolvers": "^5.7.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",

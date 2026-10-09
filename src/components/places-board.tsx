@@ -20,6 +20,8 @@ import {
   Search,
 } from "lucide-react";
 import { Flag } from "@/components/flags";
+import { FloorBanner } from "@/components/market-live";
+import { SafeSiteLink, SafeTelLink } from "@/components/safe-link";
 import { SlippyMap } from "@/components/slippy-map";
 import {
   GlowCard,
@@ -47,6 +49,7 @@ import {
   type RatesResponse,
 } from "@/lib/domain";
 import { haversineM } from "@/lib/geo";
+import { mapsDirectionsUrl } from "@/lib/security";
 import { SOFT_SPRING } from "@/components/motion-ui/springs";
 import { useSpringTransition } from "@/components/motion-ui/use-spring";
 
@@ -90,10 +93,9 @@ export function NearbyPanel({ rates }: { rates: RatesResponse | null }) {
 
   return (
     <section className="space-y-4">
-      <p className="text-pretty text-muted">
-        Casas de cambio y Banco Azteca a un máximo de 5 km del punto de partida. El círculo del mapa
-        es ese radio.
-      </p>
+      <FloorBanner eyebrow="A 5 km" title="Casas y Azteca cerca de ti">
+        El círculo del mapa es el radio. La ubicación solo se pide si tocas Mi ubicación.
+      </FloorBanner>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
         <MotionField
           className="flex-1"
@@ -230,10 +232,10 @@ export function AirportPanel({ rates }: { rates: RatesResponse | null }) {
 
   return (
     <section className="space-y-4">
-      <p className="text-pretty text-muted">
-        Aeropuertos de México, Estados Unidos, Japón y Canadá. Al elegir uno se buscan casas de
-        cambio y Banco Azteca a 5 km, sobre todo los de la zona de la terminal.
-      </p>
+      <FloorBanner eyebrow="Terminales" title="Dónde cambiar al llegar">
+        México, Estados Unidos, Japón y Canadá. Al elegir un aeropuerto se buscan locales a 5 km, sobre todo
+        en la zona de la terminal.
+      </FloorBanner>
       <MotionRail
         activeKey={country}
         ariaLabel="Filtrar aeropuertos por país"
@@ -629,47 +631,43 @@ function PlaceCard({
   const azteca = usdMid ? aztecaPair("USD", usdMid, usdMid, board) : null;
   const buy = Number(seenBuy.replace(",", "."));
   const sell = Number(seenSell.replace(",", "."));
-  const maps = `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}`;
+  const maps = mapsDirectionsUrl(place.lat, place.lon);
 
   return (
     <SwipeRevealCard
       actions={
         <>
-          <MotionLink
-            className="place-swipe-action"
-            href={maps}
-            target="_blank"
-            rel="noreferrer"
-            tone="ink"
-            size="sm"
-            leading={<Navigation className="size-4" aria-hidden="true" />}
-            aria-label={`Cómo llegar a ${place.name}`}
-          >
-            Cómo llegar
-          </MotionLink>
-          {place.phone ? (
+          {maps ? (
             <MotionLink
               className="place-swipe-action"
-              href={`tel:${place.phone}`}
-              size="sm"
-              leading={<Phone className="size-4" aria-hidden="true" />}
-              aria-label={`Llamar a ${place.name}`}
-            >
-              Llamar
-            </MotionLink>
-          ) : null}
-          {place.website ? (
-            <MotionLink
-              className="place-swipe-action"
-              href={place.website}
+              href={maps}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
+              tone="ink"
               size="sm"
-              aria-label={`Abrir sitio de ${place.name}`}
+              leading={<Navigation className="size-4" aria-hidden="true" />}
+              aria-label={`Cómo llegar a ${place.name}`}
             >
-              Sitio
+              Cómo llegar
             </MotionLink>
           ) : null}
+          <SafeTelLink
+            className="place-swipe-action"
+            phone={place.phone}
+            size="sm"
+            leading={<Phone className="size-4" aria-hidden="true" />}
+            label={`Llamar a ${place.name}`}
+          >
+            Llamar
+          </SafeTelLink>
+          <SafeSiteLink
+            className="place-swipe-action"
+            href={place.website}
+            size="sm"
+            label={`Abrir sitio de ${place.name}`}
+          >
+            Sitio
+          </SafeSiteLink>
         </>
       }
     >
@@ -793,30 +791,29 @@ function PlaceCard({
           </button>
 
           <div className="place-card__desktop-actions mt-3 flex flex-wrap gap-2">
-            <MotionLink
-              href={maps}
-              target="_blank"
-              rel="noreferrer"
-              tone="ink"
-              size="md"
-              leading={<Navigation className="size-4" aria-hidden="true" />}
-            >
-              Cómo llegar
-            </MotionLink>
-            {place.phone ? (
+            {maps ? (
               <MotionLink
-                href={`tel:${place.phone}`}
+                href={maps}
+                target="_blank"
+                rel="noopener noreferrer"
+                tone="ink"
                 size="md"
-                leading={<Phone className="size-4" aria-hidden="true" />}
+                leading={<Navigation className="size-4" aria-hidden="true" />}
               >
-                Llamar
+                Cómo llegar
               </MotionLink>
             ) : null}
-            {place.website ? (
-              <MotionLink href={place.website} target="_blank" rel="noreferrer" size="md">
-                Sitio
-              </MotionLink>
-            ) : null}
+            <SafeTelLink
+              phone={place.phone}
+              size="md"
+              leading={<Phone className="size-4" aria-hidden="true" />}
+              label={`Llamar a ${place.name}`}
+            >
+              Llamar
+            </SafeTelLink>
+            <SafeSiteLink href={place.website} size="md" label={`Abrir sitio de ${place.name}`}>
+              Sitio
+            </SafeSiteLink>
           </div>
         </GlowCard>
       )}

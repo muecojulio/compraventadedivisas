@@ -1,13 +1,22 @@
 import { z } from "zod";
 import { RADIUS_M, type GeoHit, type Place, type PlaceKind, type PlacesResponse } from "@/lib/domain";
 import { haversineM } from "@/lib/geo";
+import {
+  BusyError,
+  LruTtlCache,
+  RequestPacer,
+  fetchAllowlisted,
+  safeHttpUrl,
+  sanitizeDisplayText,
+  sanitizePhone,
+  sanitizeSearchQuery,
+} from "@/lib/security";
 
 const UA = "CompraVentaDivisas/1.0 (buscador de casas de cambio; uso personal)";
-
-type CacheEntry = { at: number; data: PlacesResponse };
-const cache = new Map<string, CacheEntry>();
-const inflight = new Map<string, Promise<PlacesResponse>>();
 const TTL_MS = 8 * 60_000;
+const cache = new LruTtlCache<PlacesResponse>(180, TTL_MS);
+const inflight = new Map<string, Promise<PlacesResponse>>();
+const nominatim = new RequestPacer(1100, 8);
 
 const querySchema = z.object({
   lat: z.number().gte(-90).lte(90),
@@ -33,15 +42,23 @@ function rowToPlace(row: NominatimRow, originLat: number, originLon: number, kin
   const lat = Number(row.lat);
   const lon = Number(row.lon);
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
   const distanceM = haversineM(originLat, originLon, lat, lon);
   if (distanceM > RADIUS_M) return null;
   const address = row.address ?? {};
-  const street = [address.road, address.house_number].filter(Boolean).join(" ");
-  const city = address.city || address.town || address.suburb || address.neighbourhood || "";
+  const street = [sanitizeDisplayText(address.road, 80), sanitizeDisplayText(address.house_number, 16)]
+    .filter(Boolean)
+    .join(" ");
+  const city = sanitizeDisplayText(
+    address.city || address.town || address.suburb || address.neighbourhood || "",
+    80,
+  );
   const extra = row.extratags ?? {};
+  const fallback = kind === "azteca" ? "Banco Azteca" : "Casa de cambio";
   const name =
-    (row.name || "").trim() ||
-    (kind === "azteca" ? "Banco Azteca" : (row.display_name || "Casa de cambio").split(",")[0] || "Casa de cambio");
+    sanitizeDisplayText(row.name, 80) ||
+    sanitizeDisplayText((row.display_name || "").split(",")[0], 80) ||
+    fallback;
   return {
     id: `osm-${row.place_id ?? `${lat.toFixed(5)},${lon.toFixed(5)}`}`,
     name,
@@ -50,15 +67,16 @@ function rowToPlace(row: NominatimRow, originLat: number, originLon: number, kin
     lon,
     distanceM,
     address: [street, city].filter(Boolean).join(", "),
-    hours: extra.opening_hours ?? null,
-    phone: extra.phone || extra["contact:phone"] || null,
-    website: extra.website || extra["contact:website"] || null,
+    hours: sanitizeDisplayText(extra.opening_hours, 120) || null,
+    phone: sanitizePhone(extra.phone || extra["contact:phone"] || ""),
+    website: safeHttpUrl(extra.website || extra["contact:website"] || ""),
   };
 }
 
 async function nominatimSearch(q: string, lat: number, lon: number): Promise<NominatimRow[]> {
   const dLat = RADIUS_M / 111_000;
-  const dLon = RADIUS_M / (111_000 * Math.cos((lat * Math.PI) / 180));
+  const cos = Math.cos((lat * Math.PI) / 180);
+  const dLon = RADIUS_M / (111_000 * (Math.abs(cos) < 0.2 ? 0.2 : cos));
   const url = new URL("https://nominatim.openstreetmap.org/search");
   url.searchParams.set("format", "jsonv2");
   url.searchParams.set("q", q);
@@ -67,13 +85,14 @@ async function nominatimSearch(q: string, lat: number, lon: number): Promise<Nom
   url.searchParams.set("addressdetails", "1");
   url.searchParams.set("extratags", "1");
   url.searchParams.set("viewbox", `${lon - dLon},${lat + dLat},${lon + dLon},${lat - dLat}`);
-  const res = await fetch(url, {
-    headers: { accept: "application/json", "user-agent": UA, "accept-language": "es" },
-    signal: AbortSignal.timeout(12000),
-  });
-  if (!res.ok) throw new Error(`nominatim ${res.status}`);
-  const rows = (await res.json()) as NominatimRow[];
-  return Array.isArray(rows) ? rows : [];
+  const text = await nominatim.run(() =>
+    fetchAllowlisted(url.toString(), {
+      headers: { accept: "application/json", "user-agent": UA, "accept-language": "es" },
+      maxBytes: 1_500_000,
+    }),
+  );
+  const rows = JSON.parse(text) as unknown;
+  return Array.isArray(rows) ? (rows as NominatimRow[]) : [];
 }
 
 async function queryPlaces(lat: number, lon: number): Promise<Place[]> {
@@ -102,9 +121,10 @@ export async function getPlaces(lat: number, lon: number): Promise<PlacesRespons
   const parsed = querySchema.parse({ lat, lon });
   const key = cacheKey(parsed.lat, parsed.lon);
   const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < TTL_MS) return hit.data;
+  if (hit) return hit;
   const pending = inflight.get(key);
   if (pending) return pending;
+  if (inflight.size > 32) throw new BusyError();
   const job = queryPlaces(parsed.lat, parsed.lon)
     .then((places) => {
       const data: PlacesResponse = {
@@ -113,7 +133,7 @@ export async function getPlaces(lat: number, lon: number): Promise<PlacesRespons
         source: "OpenStreetMap / Nominatim",
         fetchedAt: new Date().toISOString(),
       };
-      cache.set(key, { at: Date.now(), data });
+      cache.set(key, data);
       return data;
     })
     .finally(() => {
@@ -123,28 +143,30 @@ export async function getPlaces(lat: number, lon: number): Promise<PlacesRespons
   return job;
 }
 
-const geoSchema = z.string().trim().min(2).max(120);
-
 export async function geocode(raw: string): Promise<GeoHit[]> {
-  const q = geoSchema.parse(raw).replace(/[^\p{L}\p{N}\s,.'#/-]/gu, "");
+  const q = sanitizeSearchQuery(raw);
   if (q.length < 2) return [];
   const url = new URL("https://nominatim.openstreetmap.org/search");
   url.searchParams.set("format", "jsonv2");
   url.searchParams.set("q", q);
   url.searchParams.set("limit", "5");
-  const res = await fetch(url, {
-    headers: { accept: "application/json", "user-agent": UA, "accept-language": "es" },
-    signal: AbortSignal.timeout(12000),
-  });
-  if (!res.ok) throw new Error(`geocode ${res.status}`);
-  const rows = (await res.json()) as Array<{ display_name?: string; lat?: string; lon?: string }>;
+  const text = await nominatim.run(() =>
+    fetchAllowlisted(url.toString(), {
+      headers: { accept: "application/json", "user-agent": UA, "accept-language": "es" },
+      maxBytes: 600_000,
+    }),
+  );
+  const rows = JSON.parse(text) as unknown;
   if (!Array.isArray(rows)) return [];
   return rows
     .map((row) => {
-      const lat = Number(row.lat);
-      const lon = Number(row.lon);
-      const label = (row.display_name ?? "").split(",").slice(0, 3).join(",").trim();
+      if (!row || typeof row !== "object") return null;
+      const item = row as { display_name?: string; lat?: string; lon?: string };
+      const lat = Number(item.lat);
+      const lon = Number(item.lon);
+      const label = sanitizeDisplayText(String(item.display_name ?? "").split(",").slice(0, 3).join(","), 140);
       if (!Number.isFinite(lat) || !Number.isFinite(lon) || !label) return null;
+      if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
       return { label, lat, lon };
     })
     .filter((row): row is GeoHit => row != null);
